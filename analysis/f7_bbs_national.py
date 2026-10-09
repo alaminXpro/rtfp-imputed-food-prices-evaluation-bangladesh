@@ -42,7 +42,17 @@ def main():
                 r = hac_fit(m.loc[mask, f"d{k}"], m.loc[mask, f"{src}_{k}m"], lags)
                 rows.append({"horizon_months": k, "rtfp_index": src, "period": period, **r})
     t = pd.DataFrame(rows)
+    # published vs survey-only national index (partly mechanical: observed cells enter both)
+    pv = []
+    for per, mask in {"2007-2026": nat.month >= "2007-02-01", "2020-08+": nat.month >= "2020-08-01",
+                      "2007-2019": nat.month < "2020-01-01"}.items():
+        d = nat.loc[mask, ["dlog_pub_index", "dlog_obs_index"]].dropna()
+        f = sm.OLS(d.dlog_obs_index, sm.add_constant(d.dlog_pub_index)).fit(cov_type="HAC", cov_kwds={"maxlags": 3})
+        pv.append({"period": per, "n": len(d), "corr_pub_vs_obs": round(float(np.corrcoef(d.dlog_pub_index, d.dlog_obs_index)[0, 1]), 3),
+                   "slope_obs_on_pub": round(float(f.params.iloc[1]), 3), "se_hac": round(float(f.bse.iloc[1]), 3),
+                   "sd_pub": round(float(d.dlog_pub_index.std()), 4), "sd_obs": round(float(d.dlog_obs_index.std()), 4)})
     OUT.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame(pv).to_csv(OUT / "T7n_published_vs_survey_national.csv", index=False)
     t.to_csv(OUT / "T7n_bbs_national.csv", index=False)
     m.to_csv(OUT / "T7n_bbs_national_series.csv", index=False)
     pd.set_option("display.width", 200)

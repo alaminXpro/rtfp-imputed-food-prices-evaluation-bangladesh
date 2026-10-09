@@ -1,6 +1,7 @@
 # Rebuild every table, note and figure from data/raw/ (after `make data`).
-.PHONY: data panel stack all test external
-PY := .venv/bin/python -I
+.PHONY: data panel stack all test external replication
+# single-threaded BLAS, low priority: keeps a laptop cool (see README)
+PY := VECLIB_MAXIMUM_THREADS=1 OMP_NUM_THREADS=1 nice -n 5 .venv/bin/python -I
 
 data:
 	$(PY) -m rtfp.download --root data/raw
@@ -26,7 +27,16 @@ all: panel stack
 	$(PY) analysis/t7_uncertainty.py
 	$(PY) analysis/f7_bbs_national.py
 	$(PY) analysis/a5_tcb_dhaka.py
+	$(PY) analysis/t5_switchers.py --boot 1000
+	$(PY) analysis/a4_simulation.py
+	$(PY) analysis/t6_alerts.py
 	$(PY) analysis/notes.py
+	$(PY) analysis/t8_safe_use.py
+	$(PY) analysis/figures.py
+
+# five-country replication (downloads ~2.3 GB; run separately)
+replication:
+	$(PY) analysis/t9_replication.py all
 
 test:
 	.venv/bin/python -m pytest -q
