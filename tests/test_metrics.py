@@ -109,3 +109,17 @@ def test_persistent_spike_flags():
     s = persistent_spikes(df, jump=0.10, keep=0.5, moved=0.05)
     assert s.is_spike.tolist() == [True, False, True, False]   # 0.15-0.10=0.05 < half of 0.15 -> not persistent
     assert s.caught.tolist()[0] and not s.caught.tolist()[2]    # same-direction move of >= 5%
+
+
+def test_national_index_equal_weights_items_and_uses_observed_changes_only():
+    from rtfp.metrics import national_changes
+    p = pd.DataFrame({"item": ["rice", "rice", "oil", "oil"] * 2,
+                      "month": pd.to_datetime(["2025-01-01"] * 4 + ["2025-02-01"] * 4),
+                      "mkt_uid": ["a", "b", "a", "b"] * 2,
+                      "c": [100, 100, 50, 50, 110, 110, 50, 50.0],
+                      "dlog_obs": [np.nan] * 4 + [np.log(1.2), np.nan, 0.0, np.nan]})
+    n = national_changes(p).set_index("month")
+    # published: rice +log(1.1), oil 0 -> mean
+    assert n.loc["2025-02-01", "dlog_pub_index"] == pytest.approx(np.log(1.1) / 2)
+    # observed: rice log(1.2) (one market), oil 0 -> mean
+    assert n.loc["2025-02-01", "dlog_obs_index"] == pytest.approx(np.log(1.2) / 2)

@@ -109,6 +109,7 @@ Inference: two-way (market × month) cluster bootstrap, B = 1,000, with rel resa
 - *Alerts:* ALPS (WFP 2014) and IPA (FAO) from ĉ vs from y on H cells; recall, precision, κ with CIs. Benchmark: recall/precision a calibrated, noise-removing imputer achieves against noisy survey alerts, from the Task 3.1 simulation calibrated to estimated Var(e), Var(ν) and the empirical seasonal structure. "Local event" = survey alert in a market while < 25% of markets alert that month. Power calculation on expected alert counts precedes any confirmatory use.
 - *Regressor attenuation:* β_MZ from D1 reported as the multiplier on coefficients estimated with imputed local changes; one worked example re-estimated on observed-only cells if a suitable published RTFP regression exists.
 - *National (descriptive):* equal-weight log index of c_ across all markets and items vs (a) the observed-only index, both against BBS food CPI and, where available, the BBS rice sub-index; m/m and 3-month changes; Newey–West / block-bootstrap SEs; splice documented.
+  - *Result (2026-10-09):* BBS food CPI is uncorrelated with both the published and the survey-only four-staple index (basket mismatch), so it cannot validate the national signal; BBS publishes no rice sub-index. The published national index tracks the survey-only index (corr 0.81–0.87), partly mechanically. See `outputs/results_notes/T7n.md`.
 - *Safe-use table:* assembled by script from D1–D4 outputs (Table 8).
 
 **D5 — Calibrated uncertainty (Task 5.1).**

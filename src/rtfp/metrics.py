@@ -123,3 +123,19 @@ def persistent_spikes(df: pd.DataFrame, jump: float = 0.10, keep: float = 0.5, m
     out["is_spike"] = (j.abs() > jump) & (retained >= keep * j.abs())
     out["caught"] = out.is_spike & (np.sign(pub) == np.sign(j)) & (pub.abs() >= moved)
     return out
+
+
+def national_changes(panel: pd.DataFrame) -> pd.DataFrame:
+    """Monthly national log changes, equal weight across items.
+
+    dlog_pub_index: change of the mean log published price across all markets (balanced panel), per item.
+    dlog_obs_index: mean observed log change (cells observed in both months), per item.
+    Both are then averaged across items with equal weights.
+    """
+    p = panel.copy()
+    p["item"] = p["item"].astype(str)
+    lvl = p.assign(lc=np.log(p.c)).groupby(["item", "month"]).lc.mean().unstack("item").sort_index()
+    pub = lvl.diff()
+    obs = p.groupby(["item", "month"]).dlog_obs.mean().unstack("item").reindex(pub.index)
+    return pd.DataFrame({"month": pub.index, "dlog_pub_index": pub.mean(axis=1, skipna=False).to_numpy(),
+                         "dlog_obs_index": obs.mean(axis=1, skipna=False).to_numpy()}).dropna(how="all", subset=["dlog_pub_index", "dlog_obs_index"])

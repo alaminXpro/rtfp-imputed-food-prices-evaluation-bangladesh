@@ -1,0 +1,29 @@
+# T7n — National signal: RTFP vs BBS food CPI, and published vs survey (Task 4.3)
+
+*Generated from `analysis/f7_bbs_national.py` outputs and the published-vs-survey check; regenerate rather than edit.*
+
+**Claim 1 (negative result).** BBS national food CPI cannot validate RTFP's national signal. Monthly and 3-month changes of a four-staple RTFP index are essentially uncorrelated with BBS food inflation, and **so is the survey-only index**, so the mismatch is the basket (four staples vs the full food basket), not imputation.
+
+| horizon_months | rtfp_index | n_months | corr | slope | slope_se_hac |
+|---|---|---|---|---|---|
+| 1 | dlog_pub_index | 141 | 0.044 | 0.052 | 0.101 |
+| 1 | dlog_obs_index | 131 | -0.140 | -0.107 | 0.076 |
+| 3 | dlog_pub_index | 137 | 0.065 | 0.065 | 0.102 |
+| 3 | dlog_obs_index | 123 | -0.092 | -0.077 | 0.099 |
+
+(12-month changes: correlation 0.04 published, −0.00 survey-only; leads/lags −3..+3 months: |corr| ≤ 0.09.)
+
+**Claim 2.** RTFP's published national index tracks the survey-only national index: monthly log changes correlate 0.81–0.87 with slope ≈ 1.
+
+| period | n | corr_pub_vs_obs | slope_obs_on_pub | se_hac | sd_pub | sd_obs |
+|---|---|---|---|---|---|---|
+| 2007-2026 | 226 | 0.807 | 0.965 | 0.041 | 0.021 | 0.025 |
+| 2020-08+ | 68 | 0.857 | 1.189 | 0.078 | 0.011 | 0.016 |
+| 2007-2019 | 151 | 0.869 | 0.944 | 0.046 | 0.024 | 0.026 |
+
+**Caveats.**
+- Claim 2 is partly mechanical: observed cells enter both indices (the published value equals the survey value in ~91–93% of observed cells, Table A1b). It shows the national signal is not distorted by imputation; it is not an independent validation.
+- BBS month alignment verified against the official workbook (Jul–Sep 2026 values match exactly). No splice across the April 2023 rebasing; changes computed within one base.
+- Methodology D4 had expected agreement with BBS; that expectation was wrong and is recorded as such.
+
+**Files.** `outputs/tables/T7n_bbs_national.csv`, `T7n_bbs_national_series.csv`, `T7n_published_vs_survey_national.csv`.
