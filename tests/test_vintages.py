@@ -130,3 +130,25 @@ def test_build_stack_refuses_a_market_name_that_jumps_location(tmp_path):
     write("2025-02-10", 24.0)  # ~111 km away
     with pytest.raises(ValueError, match="X Sadar"):
         build_stack(str(tmp_path))
+
+
+def test_build_stack_drop_mode_excludes_the_jumping_market_rows(tmp_path):
+    from rtfp.vintages import build_stack
+
+    def write(v, rows):
+        d = tmp_path / f"BGD_RTFP_mkt_2007_{v}"
+        d.mkdir()
+        out = []
+        for name, lat in rows:
+            r = {"mkt_name": name, "adm1_name": "A", "adm2_name": "B", "lat": lat, "lon": 90.0, "geo_id": "g" + name,
+                 "price_date": "2024-12-01", "data_coverage": 1.0, "data_coverage_recent": 1.0}
+            for it in ["rice", "wheat_flour", "oil", "lentils"]:
+                r.update({it: 1.0, f"c_{it}": 1.0, f"o_{it}": 1.0, f"h_{it}": 1.0, f"l_{it}": 1.0, f"trust_{it}": 8})
+            out.append(r)
+        pd.DataFrame(out).to_csv(d / f"BGD_RTFP_mkt_2007_{v}.csv", index=False)
+
+    write("2025-01-10", [("Jumper", 23.0), ("Stayer", 22.0)])
+    write("2025-02-10", [("Jumper", 25.0), ("Stayer", 22.0)])
+    s = build_stack(str(tmp_path), on_drift="drop")
+    assert set(s.mkt_uid) == {"m_stayer"}
+    assert s.attrs["dropped_markets"] == ["Jumper"]

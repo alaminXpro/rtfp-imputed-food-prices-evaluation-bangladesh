@@ -42,3 +42,11 @@ def test_one_row_per_vintage_and_geo_id():
     a = _vintage("2024-03-11", [["Bogra Sadar", "Rajshahi", "Bogra", 24.85, 89.37, "gid_1"]])
     xw = build_crosswalk(pd.concat([a, a]))
     assert len(xw) == 1
+
+
+def test_drop_mode_removes_only_the_market_that_jumps_and_reports_it():
+    a = _vintage("2024-03-11", [["Hola", "X", "Y", 1.0, 40.0, "g1"], ["Garissa", "X", "Z", -0.45, 39.6, "g2"]])
+    b = _vintage("2024-03-18", [["Hola", "X", "Y", -2.0, 40.0, "g3"], ["Garissa", "X", "Z", -0.45, 39.6, "g4"]])
+    xw = build_crosswalk(pd.concat([a, b]), max_drift_km=3, on_drift="drop")
+    assert set(xw.mkt_name) == {"Garissa"}
+    assert xw.attrs["dropped_markets"] == ["Hola"]

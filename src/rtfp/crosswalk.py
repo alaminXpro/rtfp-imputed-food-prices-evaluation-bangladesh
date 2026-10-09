@@ -26,26 +26,36 @@ def _uid(name: str) -> str:
     return "m_" + re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
 
 
-def build_crosswalk(market_rows: pd.DataFrame, max_drift_km: float = 3.0) -> pd.DataFrame:
+def build_crosswalk(market_rows: pd.DataFrame, max_drift_km: float = 3.0, on_drift: str = "raise") -> pd.DataFrame:
     """One row per (vintage, geo_id) with a stable `mkt_uid` and an `is_aggregate` flag.
 
-    Raises ValueError if a market name spans locations more than `max_drift_km` apart.
+    If a market name spans locations more than `max_drift_km` apart: on_drift='raise' raises ValueError
+    (default, used for Bangladesh); on_drift='drop' removes that market and lists it in
+    ``result.attrs['dropped_markets']`` (used for the replication countries, where it is reported).
     """
+    if on_drift not in ("raise", "drop"):
+        raise ValueError(on_drift)
     xw = market_rows[["vintage"] + MARKET_COLS].drop_duplicates(["vintage", "geo_id"]).copy()
     xw["is_aggregate"] = xw.mkt_name.isin(AGGREGATE_NAMES)
     xw["mkt_uid"] = xw.mkt_name.map(_uid)
 
     real = xw[~xw.is_aggregate].dropna(subset=["lat", "lon"])
+    dropped = []
     for name, g in real.groupby("mkt_name"):
         pts = g[["lat", "lon"]].drop_duplicates().to_numpy()
         if len(pts) < 2:
             continue
         d = _haversine_km(pts[:, None, 0], pts[:, None, 1], pts[None, :, 0], pts[None, :, 1])
         if d.max() > max_drift_km:
-            raise ValueError(f"market name {name!r} spans {d.max():.1f} km across vintages")
+            if on_drift == "raise":
+                raise ValueError(f"market name {name!r} spans {d.max():.1f} km across vintages")
+            dropped.append(name)
+    xw = xw[~xw.mkt_name.isin(dropped)]
     if xw.groupby("vintage").mkt_uid.apply(lambda s: s.duplicated().any()).any():
         raise ValueError("two geo_ids share one market name within a vintage")
-    return xw.sort_values(["vintage", "mkt_uid"]).reset_index(drop=True)
+    out = xw.sort_values(["vintage", "mkt_uid"]).reset_index(drop=True)
+    out.attrs["dropped_markets"] = sorted(dropped)
+    return out
 
 
 def vintage_of(path: str) -> str:

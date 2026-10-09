@@ -25,7 +25,7 @@ STACK_COLS = ["vintage", "mkt_uid", "month", "item", "y", "c", "h", "l", "trust"
               "n_obs_month", "obs", "dlog_obs", "dlog_pub", "mu_obs", "data_coverage", "data_coverage_recent"]
 
 
-def build_stack(vintage_dir: str, items=None, prefix: str = "BGD") -> pd.DataFrame:
+def build_stack(vintage_dir: str, items=None, prefix: str = "BGD", on_drift: str = "raise") -> pd.DataFrame:
     from rtfp.panel import ITEMS
 
     items = ITEMS if items is None else items
@@ -36,12 +36,18 @@ def build_stack(vintage_dir: str, items=None, prefix: str = "BGD") -> pd.DataFra
         p = build_panel(raw, items)
         p["vintage"] = pd.Timestamp(vintage_of(f))
         frames.append(p[[c for c in STACK_COLS if c in p.columns]])
-    build_crosswalk(pd.concat(markets, ignore_index=True))  # raises if a market name jumps location
+    # raises if a market name jumps location (on_drift='raise'), or drops that market (on_drift='drop')
+    xw = build_crosswalk(pd.concat(markets, ignore_index=True), on_drift=on_drift)
     s = pd.concat(frames, ignore_index=True)
+    dropped = xw.attrs.get("dropped_markets", [])
+    if dropped:
+        from rtfp.crosswalk import _uid
+        s = s[~s.mkt_uid.isin({_uid(n) for n in dropped})].reset_index(drop=True)
     s["mu_pub_all"] = s.groupby(["vintage", "item", "month"]).dlog_pub.transform("mean")
     for c in ["y", "c", "h", "l", "dlog_obs", "dlog_pub", "mu_obs", "mu_pub_all", "dist_obs_km", "gap"]:
         s[c] = s[c].astype("float64")
     s["item"] = s["item"].astype("category")
+    s.attrs["dropped_markets"] = list(dropped)
     return s
 
 
