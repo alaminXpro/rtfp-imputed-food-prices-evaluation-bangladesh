@@ -1,0 +1,47 @@
+computed_utc,item,hdx_commodity,hdx_unit,runner_up,runner_up_n_exact,match,value_mismatch,no_hdx_row,hdx_only,neither,rtfp_observed,share_matched,share_hdx_in_rtfp,median_ratio_mismatch,share_aggregate_among_matched,n_dup_rows,audit_pass,markets_by_name,markets_by_coords,markets_unmatched,status,iso3,country
+2026-10-09T14:22:54+00:00,oil,Oil (palm),L,Pulses [KG],127,7586,0,230,0,63584,7816,0.9705731832139202,1.0,,0.0,0,True,299,0,1,audited,MMR,Myanmar
+2026-10-09T14:22:54+00:00,onions,Onions (local),KG,Tomatoes (local) [KG],283,6213,0,0,0,65187,6213,1.0,1.0,,0.0,0,True,299,0,1,audited,MMR,Myanmar
+2026-10-09T14:22:54+00:00,pulses,Pulses,KG,Onions (local) [KG],130,8063,0,222,0,63115,8285,0.9732045866022933,1.0,,0.0,0,True,299,0,1,audited,MMR,Myanmar
+2026-10-09T14:22:54+00:00,rice,Rice (low quality),KG,Salt [KG],238,10419,0,228,1,60752,10647,0.9785855170470557,0.9999040307101728,,0.0,0,True,299,0,1,audited,MMR,Myanmar
+2026-10-09T14:22:54+00:00,salt,Salt,KG,Rice (low quality) [KG],239,9818,0,0,0,61582,9818,1.0,1.0,,0.0,0,True,299,0,1,audited,MMR,Myanmar
+2026-10-09T14:22:54+00:00,beans,Beans (dry),KG,Sugar [KG],81,1126,0,698,0,53630,1824,0.6173245614035088,1.0,,0.6616341030195382,0,False,226,0,7,audited,KEN,Kenya
+2026-10-09T14:22:54+00:00,livestock_goat_s_fao,,,,0,0,0,2601,0,52853,2601,0.0,,,,0,False,226,0,7,audited,KEN,Kenya
+2026-10-09T14:22:54+00:00,maize_fao,Maize (white),KG,Maize flour [KG],2,927,64,2054,0,52409,3045,0.3044334975369458,1.0,1.010989010989011,0.0,0,False,226,0,7,audited,KEN,Kenya
+2026-10-09T14:22:54+00:00,chili,Chili (red),KG,"Chili (red, curly) [KG]",2809,11225,0,0,0,41611,11225,1.0,1.0,,1.0,0,True,222,0,0,audited,IDN,Indonesia
+2026-10-09T14:22:54+00:00,eggs,Eggs,KG,Eggs (broiler) [KG],11230,17129,0,0,0,35707,17129,1.0,1.0,,0.6632027555607449,0,True,222,0,0,audited,IDN,Indonesia
+2026-10-09T14:22:54+00:00,garlic,Garlic (medium),KG,Garlic [KG],11158,17175,0,0,0,35661,17175,1.0,1.0,,0.6635225618631733,0,True,222,0,0,audited,IDN,Indonesia
+2026-10-09T14:22:54+00:00,meat_chicken,Meat (chicken),KG,"Meat (chicken, broiler) [KG]",11012,16876,0,0,0,35960,16876,1.0,1.0,,0.663427352453188,0,True,222,0,0,audited,IDN,Indonesia
+2026-10-09T14:22:54+00:00,meat_chicken_broiler,"Meat (chicken, broiler)",KG,Meat (chicken) [KG],11012,11117,0,0,0,41719,11117,1.0,1.0,,1.0,0,True,222,0,0,audited,IDN,Indonesia
+2026-10-09T14:22:54+00:00,oil,Oil (vegetable),KG,"Oil (vegetable, packaged) [KG]",2171,17018,0,0,0,35818,17018,1.0,1.0,,0.6636502526736396,0,True,222,0,0,audited,IDN,Indonesia
+2026-10-09T14:22:54+00:00,onions,"Onions (shallot, medium)",KG,Onions (shallot) [KG],10908,17094,0,0,0,35742,17094,1.0,1.0,,0.6633321633321634,0,True,222,0,0,audited,IDN,Indonesia
+2026-10-09T14:22:54+00:00,rice,Rice (medium quality),KG,Rice [KG],2651,16959,0,0,0,35877,16959,1.0,1.0,,0.6642490712895808,0,True,222,0,0,audited,IDN,Indonesia
+2026-10-09T14:22:54+00:00,sugar,Sugar (local),KG,Sugar [KG],2177,17122,0,8,0,35706,17130,0.9995329830706364,1.0,,0.6643499591169256,0,True,222,0,0,audited,IDN,Indonesia
+2026-10-09T14:22:54+00:00,beans,Beans,KG,Rice (imported) [KG],120,4770,1,170,0,46229,4941,0.965391621129326,1.0,0.6086956521739131,0.5522012578616352,0,True,214,0,1,audited,COD,"Congo, Dem. Rep."
+2026-10-09T14:22:54+00:00,cassava,Cassava (cossette),KG,Cassava [KG],208,3339,0,186,0,47645,3525,0.9472340425531914,1.0,,0.5429769392033543,0,True,214,0,1,audited,COD,"Congo, Dem. Rep."
+2026-10-09T14:22:54+00:00,cassava_flour,Cassava flour,KG,Cassava (cossette) [KG],147,4876,1,157,1,46135,5034,0.9686134286849424,0.9997949979499796,0.6774025974025975,0.5490155865463495,0,True,214,0,1,audited,COD,"Congo, Dem. Rep."
+2026-10-09T14:22:54+00:00,fish,Fish (fresh),KG,"Meat (goat, with bones) [KG]",187,3442,0,0,0,47728,3442,1.0,1.0,,0.5395119116792563,0,True,214,0,1,audited,COD,"Congo, Dem. Rep."
+2026-10-09T14:22:54+00:00,fish_salted,Fish (salted),KG,Fish (smoked) [KG],232,3072,0,0,0,48098,3072,1.0,1.0,,0.4918619791666667,0,True,214,0,1,audited,COD,"Congo, Dem. Rep."
+2026-10-09T14:22:54+00:00,fish_smoked,Fish (smoked),KG,Fish (salted) [KG],213,3058,0,0,0,48112,3058,1.0,1.0,,0.5029431000654022,0,True,214,0,1,audited,COD,"Congo, Dem. Rep."
+2026-10-09T14:22:54+00:00,maize,Maize,KG,Cassava flour [KG],104,3938,0,188,0,47044,4126,0.9544352884149298,1.0,,0.5093956323006602,0,True,214,0,1,audited,COD,"Congo, Dem. Rep."
+2026-10-09T14:22:54+00:00,meat_beef,Meat (beef),KG,"Meat (goat, with bones) [KG]",442,2949,0,0,0,48221,2949,1.0,1.0,,0.458460495083079,0,True,214,0,1,audited,COD,"Congo, Dem. Rep."
+2026-10-09T14:22:54+00:00,meat_goat,"Meat (goat, with bones)",KG,Meat (beef) [KG],443,3048,0,0,0,48122,3048,1.0,1.0,,0.5688976377952756,0,True,214,0,1,audited,COD,"Congo, Dem. Rep."
+2026-10-09T14:22:54+00:00,oil,Oil (palm),L,Rice (local) [KG],126,4942,1,172,0,46055,5115,0.966177908113392,1.0,1.2000380141631557,0.5605018211250505,0,True,214,0,1,audited,COD,"Congo, Dem. Rep."
+2026-10-09T14:22:54+00:00,plantains,Plantains,KG,Sweet potatoes [KG],204,3176,0,0,0,47994,3176,1.0,1.0,,0.4593828715365239,0,True,214,0,1,audited,COD,"Congo, Dem. Rep."
+2026-10-09T14:22:54+00:00,rice,Rice (local),KG,Rice (imported) [KG],315,4245,0,103,0,46822,4348,0.9763109475620976,1.0,,0.5257950530035336,0,True,214,0,1,audited,COD,"Congo, Dem. Rep."
+2026-10-09T14:22:54+00:00,salt,Salt,KG,Cassava flour [KG],133,4474,1,171,0,46524,4646,0.9629789065863108,1.0,0.8781558726673985,0.624273580688422,0,True,214,0,1,audited,COD,"Congo, Dem. Rep."
+2026-10-09T14:22:54+00:00,sugar,Sugar,KG,Rice (imported) [KG],308,4265,0,0,0,46905,4265,1.0,1.0,,0.6011723329425557,0,True,214,0,1,audited,COD,"Congo, Dem. Rep."
+2026-10-09T14:22:54+00:00,wheat_flour,Wheat flour,KG,Rice (imported) [KG],145,2523,0,170,0,48477,2693,0.9368733754177496,1.0,,0.3610780816488307,0,True,214,0,1,audited,COD,"Congo, Dem. Rep."
+2026-10-09T14:22:54+00:00,beans,Beans (niebe),KG,Rice (local) [KG],423,9306,0,0,0,23062,9306,1.0,1.0,,0.0,0,True,136,0,0,audited,MLI,Mali
+2026-10-09T14:22:54+00:00,groundnuts,Groundnuts (shelled),KG,Beans (niebe) [KG],302,9102,0,0,0,23266,9102,1.0,1.0,,0.0,0,True,136,0,0,audited,MLI,Mali
+2026-10-09T14:22:54+00:00,maize,Maize,KG,Sorghum [KG],3038,11727,0,0,0,20641,11727,1.0,1.0,,0.0,0,True,136,0,0,audited,MLI,Mali
+2026-10-09T14:22:54+00:00,maize_fao,,,,0,0,0,1017,0,31351,1017,0.0,,,,0,False,136,0,0,audited,MLI,Mali
+2026-10-09T14:22:54+00:00,millet,Millet,KG,Sorghum [KG],3586,15703,0,0,0,16665,15703,1.0,1.0,,0.0,0,True,136,0,0,audited,MLI,Mali
+2026-10-09T14:22:54+00:00,millet_fao,,,,0,0,0,1587,0,30781,1587,0.0,,,,0,False,136,0,0,audited,MLI,Mali
+2026-10-09T14:22:54+00:00,rice,Rice (local),KG,Rice (imported) [KG],1762,14678,0,0,0,17690,14678,1.0,1.0,,0.0,0,True,136,0,0,audited,MLI,Mali
+2026-10-09T14:22:54+00:00,rice_fao,"Livestock (goat, medium-sized male)",Head,"Livestock (sheep, medium-sized male) [Head]",1,1,22,1552,2063,28730,1575,0.0006349206349206,0.011025886864813,0.8575000240000014,0.0,0,False,136,0,0,audited,MLI,Mali
+2026-10-09T14:22:54+00:00,sorghum,Sorghum,KG,Millet [KG],3591,13758,0,0,0,18610,13758,1.0,1.0,,0.0,0,True,136,0,0,audited,MLI,Mali
+2026-10-09T14:22:54+00:00,sorghum_fao,,,,0,0,0,1508,0,30860,1508,0.0,,,,0,False,136,0,0,audited,MLI,Mali
+2026-10-09T14:22:54+00:00,lentils,Lentils (masur),KG,Oil (palm) [L],81,4144,0,0,0,22036,4144,1.0,1.0,,0.4980694980694981,0,True,110,0,0,audited,BGD,Bangladesh
+2026-10-09T14:22:54+00:00,oil,Oil (palm),L,Lentils (masur) [KG],82,4717,0,0,0,21463,4717,1.0,1.0,,0.5579817680729277,0,True,110,0,0,audited,BGD,Bangladesh
+2026-10-09T14:22:54+00:00,rice,Rice (coarse),KG,Wheat flour [KG],166,3666,0,0,0,22514,3666,1.0,1.0,,0.5234588106928533,0,True,110,0,0,audited,BGD,Bangladesh
+2026-10-09T14:22:54+00:00,wheat_flour,Wheat flour,KG,Rice (coarse) [KG],166,4777,0,0,0,21403,4777,1.0,1.0,,0.5421812853255181,0,True,110,0,0,audited,BGD,Bangladesh
