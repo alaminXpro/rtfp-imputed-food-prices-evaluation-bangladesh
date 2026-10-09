@@ -29,20 +29,22 @@ def build_stack(vintage_dir: str, items=None, prefix: str = "BGD", on_drift: str
     from rtfp.panel import ITEMS
 
     items = ITEMS if items is None else items
-    frames, markets = [], []
-    for f in sorted(glob.glob(os.path.join(vintage_dir, f"{prefix}_RTFP_mkt_*", "*.csv")), key=vintage_of):
+    files = sorted(glob.glob(os.path.join(vintage_dir, f"{prefix}_RTFP_mkt_*", "*.csv")), key=vintage_of)
+    # pass 1: market identity across releases (cheap: market columns only). Raises if a name jumps location
+    # (on_drift='raise'), or lists such markets to drop (on_drift='drop').
+    markets = [pd.read_csv(f, usecols=MARKET_COLS).drop_duplicates().assign(vintage=vintage_of(f)) for f in files]
+    xw = build_crosswalk(pd.concat(markets, ignore_index=True), on_drift=on_drift)
+    dropped = xw.attrs.get("dropped_markets", [])
+    # pass 2: per-release panels WITHOUT dropped markets, so they do not enter month means, n_obs or distances
+    frames = []
+    for f in files:
         raw = pd.read_csv(f)
-        markets.append(raw[MARKET_COLS].drop_duplicates().assign(vintage=vintage_of(f)))
+        if dropped:
+            raw = raw[~raw.mkt_name.isin(dropped)]
         p = build_panel(raw, items)
         p["vintage"] = pd.Timestamp(vintage_of(f))
         frames.append(p[[c for c in STACK_COLS if c in p.columns]])
-    # raises if a market name jumps location (on_drift='raise'), or drops that market (on_drift='drop')
-    xw = build_crosswalk(pd.concat(markets, ignore_index=True), on_drift=on_drift)
     s = pd.concat(frames, ignore_index=True)
-    dropped = xw.attrs.get("dropped_markets", [])
-    if dropped:
-        from rtfp.crosswalk import _uid
-        s = s[~s.mkt_uid.isin({_uid(n) for n in dropped})].reset_index(drop=True)
     s["mu_pub_all"] = s.groupby(["vintage", "item", "month"]).dlog_pub.transform("mean")
     for c in ["y", "c", "h", "l", "dlog_obs", "dlog_pub", "mu_obs", "mu_pub_all", "dist_obs_km", "gap"]:
         s[c] = s[c].astype("float64")

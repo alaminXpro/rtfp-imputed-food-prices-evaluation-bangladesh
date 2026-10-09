@@ -152,3 +152,29 @@ def test_build_stack_drop_mode_excludes_the_jumping_market_rows(tmp_path):
     s = build_stack(str(tmp_path), on_drift="drop")
     assert set(s.mkt_uid) == {"m_stayer"}
     assert s.attrs["dropped_markets"] == ["Jumper"]
+
+
+def test_dropped_market_does_not_enter_month_means(tmp_path):
+    from rtfp.vintages import build_stack
+
+    def write(v, rows):
+        d = tmp_path / f"BGD_RTFP_mkt_2007_{v}"
+        d.mkdir()
+        out = []
+        for name, lat, months in rows:
+            for mth, y in months:
+                r = {"mkt_name": name, "adm1_name": "A", "adm2_name": "B", "lat": lat, "lon": 90.0, "geo_id": "g" + name,
+                     "price_date": mth, "data_coverage": 1.0, "data_coverage_recent": 1.0}
+                for it in ["rice", "wheat_flour", "oil", "lentils"]:
+                    r.update({it: y, f"c_{it}": y, f"o_{it}": y, f"h_{it}": y, f"l_{it}": y, f"trust_{it}": 8})
+                out.append(r)
+        pd.DataFrame(out).to_csv(d / f"BGD_RTFP_mkt_2007_{v}.csv", index=False)
+
+    months_j = [("2024-11-01", 100.0), ("2024-12-01", 200.0)]   # jumper doubles its price
+    months_s = [("2024-11-01", 100.0), ("2024-12-01", 110.0)]
+    write("2025-01-10", [("Jumper", 23.0, months_j), ("Stayer", 22.0, months_s)])
+    write("2025-02-10", [("Jumper", 25.0, months_j), ("Stayer", 22.0, months_s)])
+    s = build_stack(str(tmp_path), on_drift="drop")
+    dec = s[(s.month == "2024-12-01") & (s["item"] == "rice")]
+    assert np.allclose(dec.mu_obs, np.log(1.1))  # only the stayer's change, not the jumper's log(2)
+    assert (dec.n_obs_month == 1).all()
