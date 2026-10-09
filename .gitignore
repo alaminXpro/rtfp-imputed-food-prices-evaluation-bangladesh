@@ -14,3 +14,6 @@ outputs/site_data/
 site/node_modules/
 site/.next/
 site/out/
+# third-party files with no stated licence: kept locally, not redistributed
+tests/fixtures/bbs/
+tests/fixtures/tcb/
