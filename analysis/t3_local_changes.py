@@ -4,8 +4,8 @@ Pairs: hold-out change pairs (t-1, t), both published values from the imputing r
 release (WFP-confirmed). Reported by stratum x pair type x local-component definition:
   own_mu        each side minus its own release's observed-market mean change (methodology M1, primary)
   within_month  both sides demeaned within item x month over the evaluation sample
-rho* is reported as a band: corr (no noise correction) .. corr / sqrt(rel), with rel from Table 1
-(A_main naive, and the conservative minimum used by Gate G1).
+rho* is reported as a band: corr (no noise correction), corr / sqrt(rel_A) and corr / sqrt(rel_trimmed), with
+rel from Table 1 (variant A_main, matched to pairs that include stale zero changes; A_trim1 robust bound).
 Spikes (Table 3b): survey jumps > 10% whose level persists (>= half retained at t+1); share caught by a
 same-direction published move of >= 5%.
 CIs: two-way (market x month) pigeonhole bootstrap.
@@ -29,9 +29,10 @@ def main():
     for d in (pairs, panel):
         d["item"] = d["item"].astype(str)
     rel = pd.read_csv(OUT / "T1_noise_reliability.csv")
+    # pairs here include zero (stale) truth changes, so the matched reliability is variant A (methodology D2,
+    # 2026-10-09 clarification); the trimmed variant is shown as the robust bound
     rel_a = rel[rel.variant == "A_main"].set_index("item").rel_naive
-    gate = pd.read_csv(OUT / "T1b_local_information_and_gate.csv")
-    rel_c = gate.drop_duplicates("item").set_index("item").rel_conservative
+    rel_t = rel[rel.variant == "A_trim1"].set_index("item").rel_naive
 
     clean = pairs[pairs.stratum.isin(["cross_sectional", "forecast"])]
     markets, months = sorted(set(panel.mkt_uid)), sorted(set(panel.month))
@@ -54,7 +55,7 @@ def main():
                              "corr_lo": bs["corr"].quantile(0.025), "corr_hi": bs["corr"].quantile(0.975),
                              "beta_mz_lo": bs.beta_mz.quantile(0.025), "beta_mz_hi": bs.beta_mz.quantile(0.975),
                              "rho_star_relA": s["corr"] / np.sqrt(rel_a[it]),
-                             "rho_star_conservative": s["corr"] / np.sqrt(rel_c[it])})
+                             "rho_star_trimmed": s["corr"] / np.sqrt(rel_t[it])})
     t = pd.DataFrame(rows)
 
     # spikes: need the truth change from t to t+1 (both observed in the latest release)
@@ -72,7 +73,7 @@ def main():
     spikes.to_csv(OUT / "T3b_spikes.csv", index=False)
     pd.set_option("display.width", 250)
     print(t[["stratum", "pair_type", "mode", "item", "n", "corr", "corr_lo", "corr_hi", "beta_mz", "beta_mz_lo",
-             "beta_mz_hi", "lam", "rho_star_relA", "rho_star_conservative"]].round(3).to_string(index=False))
+             "beta_mz_hi", "lam", "rho_star_relA", "rho_star_trimmed"]].round(3).to_string(index=False))
     print(spikes.round(3).to_string(index=False))
 
 

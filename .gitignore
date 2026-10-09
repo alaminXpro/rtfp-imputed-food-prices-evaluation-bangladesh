@@ -17,3 +17,4 @@ site/out/
 # third-party files with no stated licence: kept locally, not redistributed
 tests/fixtures/bbs/
 tests/fixtures/tcb/
+src/*.egg-info/
