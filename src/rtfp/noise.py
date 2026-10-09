@@ -14,10 +14,13 @@ import numpy as np
 import pandas as pd
 
 
-def autocovariances(df: pd.DataFrame, value: str = "e_obs", lags=(0, 1, 2, 3), demean: bool = True) -> pd.DataFrame:
+def autocovariances(df: pd.DataFrame, value: str = "e_obs", lags=(0, 1, 2, 3), demean: bool = True,
+                    trim: float = 0.0) -> pd.DataFrame:
     """Pooled autocovariances by item, using pairs exactly k calendar months apart within a market.
 
     Optional column `w` weights observations (bootstrap); a pair takes the weight of its later month.
+    trim > 0 drops, per item, the changes whose absolute value is above the (1 - trim) quantile before
+    computing any lag (robust to gross entry errors, which appear as a spike and its reversal).
     """
     cols = ["mkt_uid", "item", "month", value] + (["w"] if "w" in df.columns else [])
     d = df[cols].dropna(subset=[value]).copy()
@@ -25,6 +28,9 @@ def autocovariances(df: pd.DataFrame, value: str = "e_obs", lags=(0, 1, 2, 3), d
         d["w"] = 1.0
     d = d[d.w > 0]
     d["item"] = d["item"].astype(str)
+    if trim > 0:
+        cut = d.groupby("item")[value].transform(lambda x: x.abs().quantile(1 - trim))
+        d = d[d[value].abs() <= cut]
     if demean:
         wm = (d[value] * d.w).groupby(d["item"]).sum() / d.w.groupby(d["item"]).sum()
         d[value] = d[value] - d["item"].map(wm)

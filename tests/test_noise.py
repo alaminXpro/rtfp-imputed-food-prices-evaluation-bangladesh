@@ -71,3 +71,17 @@ def test_weights_zero_on_a_market_equal_dropping_it_and_ones_change_nothing():
     dropped = autocovariances(d[d.mkt_uid != "m0"])
     zero = autocovariances(d.assign(w=np.where(d.mkt_uid == "m0", 0, 1)))
     assert np.allclose(dropped[["g0", "g1", "g2", "g3"]], zero[["g0", "g1", "g2", "g3"]])
+
+
+def test_trimmed_autocovariance_resists_a_single_gross_error():
+    d = _simulate(n_mkts=300, phi=0.6, sd_innov=0.03, sd_noise=0.005, seed=9)
+    clean = noise_from_autocov(autocovariances(d).loc["rice"])
+    # inject one -85% entry error that recovers next month (spike reversal), like Patuakhali 2025-03
+    bad = d.copy()
+    i = bad.index[(bad.mkt_uid == "m0") & (bad.month == "2022-06-01")][0]
+    bad.loc[i, "e_obs"] += np.log(0.15)
+    bad.loc[i + 1, "e_obs"] -= np.log(0.15)
+    contaminated = noise_from_autocov(autocovariances(bad).loc["rice"])
+    trimmed = noise_from_autocov(autocovariances(bad, trim=0.01).loc["rice"])
+    assert contaminated["rel_naive"] < clean["rel_naive"] - 0.1       # one error moves the estimate (0.56 -> 0.40)
+    assert abs(trimmed["rel_naive"] - clean["rel_naive"]) < 0.1       # trimming restores it

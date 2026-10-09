@@ -1,13 +1,22 @@
 """Table 1: measurement-noise reliability of observed local changes, and Gate G1 (Task 2.1).
 
 Noise sample variants (latest release, observed local changes e_obs):
-  A main          non-Division markets, price months >= 2020-08 (the population that supplies hold-out truth)
-  B update_only   A, dropping changes that are exactly zero (stale quotes)
-  C actual_only   A, only cells whose WFP priceflag is 'actual' (not 'aggregate')
-  D all_2007      all markets incl. Division series, 2007 onward
-Gate G1 (methodology D2): on cross-sectional, both-imputed change pairs, rho* = corr(e_pub, e_obs)/sqrt(rel)
-at the conservative (lowest credible) rel from variants A and B; pivot if >= 2 of 4 items have rho* >= 0.5.
-Uncertainty: two-way (market x month) pigeonhole bootstrap, the same draw applied to noise sample and pairs.
+  A_main         non-Division markets, price months >= 2020-08 (the population that supplies hold-out truth)
+  B_update_only  A, dropping exact-zero changes (stale quotes): the staleness-aware variant of methodology D2
+  C_actual_only  A, only cells whose WFP priceflag is 'actual'
+  D_all_2007     all markets incl. Division series, 2007 onward
+  A_trim1        A with the 1% most extreme changes trimmed per item (robust to gross entry errors)
+  A_no_patuakhali A without Patuakhali Sadar 2025-03..04 (one gross entry error found in audit)
+
+Gate G1 (methodology D2), implemented faithfully (revision 2026-10-09 after audit):
+  each reliability is applied to the truth pairs of the SAME population it was estimated on:
+    A rel  -> all cross-sectional both-imputed pairs
+    B rel  -> the subset whose truth change is non-zero (quote updated)
+  rho* = corr / sqrt(rel); a combination is credible if 0 < rel <= 1. Conservative rho* per item = the
+  largest credible rho*. PIVOT if >= 2 of 4 items have conservative rho* >= 0.5.
+The first, literal implementation (B rel applied to all pairs, zero changes included) is reported as
+'literal_v1' for transparency; the audit showed it mixes populations and biases rho* upward.
+CIs: two-way (market x month) pigeonhole bootstrap; same draw for noise sample and pairs.
 """
 from pathlib import Path
 
@@ -28,35 +37,65 @@ def noise_samples(panel, audit):
     p = p[p.e_obs.notna()]
     is_div = p.mkt_name.str.endswith(" Division")
     a = p[~is_div & (p.month >= "2020-08-01")]
-    return {"A_main": a, "B_update_only": a[a.dlog_obs != 0], "C_actual_only": a[a.priceflag == "actual"],
-            "D_all_2007": p}
+    pat = (a.mkt_name == "Patuakhali Sadar") & a.month.isin(pd.to_datetime(["2025-03-01", "2025-04-01"]))
+    return {"A_main": (a, 0.0), "B_update_only": (a[a.dlog_obs != 0], 0.0),
+            "C_actual_only": (a[a.priceflag == "actual"], 0.0), "D_all_2007": (p, 0.0),
+            "A_trim1": (a, 0.01), "A_no_patuakhali": (a[~pat], 0.0)}
 
 
-def rel_table(samples, w_by=None):
+def rel_table(samples, w_by=None, only=None):
     rows = []
-    for name, d in samples.items():
+    for name, (d, trim) in samples.items():
+        if only and name not in only:
+            continue
         dd = d if w_by is None else d.assign(w=w_by(d))
-        g = autocovariances(dd)
+        g = autocovariances(dd, trim=trim)
         for it in ITEMS:
-            if it not in g.index:
-                continue
-            e = noise_from_autocov(g.loc[it])
-            rows.append({"variant": name, "item": it, "n_changes": int(g.loc[it, "n0"]), **e})
+            if it in g.index:
+                rows.append({"variant": name, "item": it, "n_changes": int(g.loc[it, "n0"]), **noise_from_autocov(g.loc[it])})
     return pd.DataFrame(rows)
 
 
-def conservative_rel(rt):
-    """Lowest credible reliability per item among variants A and B (naive and AR(1) estimators)."""
-    sub = rt[rt.variant.isin(["A_main", "B_update_only"])]
-    cand = pd.concat([sub[["item", "rel_naive"]].rename(columns={"rel_naive": "rel"}),
-                      sub[["item", "rel_ar1"]].rename(columns={"rel_ar1": "rel"})])
-    cand = cand[(cand.rel > 0) & (cand.rel <= 1)]
-    return cand.groupby("item").rel.min()
+def pair_sets(pairs):
+    cs = pairs[(pairs.stratum == "cross_sectional") & (pairs.pair_type == "both_imputed")]
+    e = local_components(cs, mode="own_mu")
+    fallback = e.mu_obs_vfinal.isna()
+    return {"all": e, "update_only": e[e.dlog_truth != 0], "no_fallback": e[~fallback],
+            "within_month": local_components(cs, mode="within_month")}
 
 
-def headline_pairs(pairs, stratum, mode):
-    p = pairs[(pairs.stratum == stratum) & (pairs.pair_type == "both_imputed")]
-    return local_components(p, mode=mode)
+def combos(rt, ps, w=None):
+    """rho* for each (reliability, pair population) combination; matched combos define the gate."""
+    plan = [("A_naive", "A_main", "rel_naive", "all", True), ("A_ar1", "A_main", "rel_ar1", "all", True),
+            ("B_naive", "B_update_only", "rel_naive", "update_only", True),
+            ("B_ar1", "B_update_only", "rel_ar1", "update_only", True),
+            ("literal_v1", "B_update_only", "rel_naive", "all", False),
+            ("A_trim1", "A_trim1", "rel_naive", "all", False),
+            ("A_no_patuakhali", "A_no_patuakhali", "rel_naive", "all", False),
+            ("A_naive_no_fallback", "A_main", "rel_naive", "no_fallback", False),
+            ("A_naive_within_month", "A_main", "rel_naive", "within_month", False),
+            ("no_noise_correction", None, None, "all", False)]
+    rows = []
+    for name, var, col, pop, in_gate in plan:
+        e = ps[pop]
+        for it in ITEMS:
+            x = e[e["item"] == it]
+            ww = np.ones(len(x)) if w is None else w(x)
+            sel = ww > 0
+            if sel.sum() < 10:
+                continue
+            st = weighted_local_stats(x.e_pub.to_numpy()[sel], x.e_obs.to_numpy()[sel], ww[sel])
+            rel = 1.0 if var is None else rt.set_index(["variant", "item"]).get(col, pd.Series(dtype=float)).get((var, it), np.nan)
+            credible = bool(0 < rel <= 1) if rel == rel else False
+            rows.append({"combo": name, "item": it, "pairs": pop, "n": st["n"], "corr": st["corr"], "rel": rel,
+                         "rho_star": st["corr"] / np.sqrt(rel) if credible else np.nan, "credible": credible,
+                         "in_gate": in_gate})
+    return pd.DataFrame(rows)
+
+
+def gate(cb):
+    g = cb[cb.in_gate & cb.credible].groupby("item").rho_star.max()
+    return g, int((g >= 0.5).sum())
 
 
 def main():
@@ -67,60 +106,39 @@ def main():
         d["item"] = d["item"].astype(str)
     samples = noise_samples(panel, audit)
     rt = rel_table(samples)
-    rel_c = conservative_rel(rt)
+    ps = pair_sets(pairs)
+    cb = combos(rt, ps)
+    g, n_over = gate(cb)
+    lit = cb[cb.combo == "literal_v1"].set_index("item").rho_star
+    n_lit = int((lit >= 0.5).sum())
 
-    evals = {(s, m): headline_pairs(pairs, s, m) for s in ("cross_sectional", "forecast")
-             for m in ("own_mu", "within_month")}
-    point = []
-    for (s, m), e in evals.items():
-        for it in ITEMS:
-            x = e[e["item"] == it]
-            st = weighted_local_stats(x.e_pub, x.e_obs, np.ones(len(x)))
-            point.append({"stratum": s, "mode": m, "item": it, **st, "rel_conservative": rel_c.get(it, np.nan),
-                          "rho_star": st["corr"] / np.sqrt(rel_c.get(it, np.nan))})
-    pt = pd.DataFrame(point)
-
-    # bootstrap: same pigeonhole draw for noise sample (A, B) and pairs
-    markets = sorted(set(panel.mkt_uid))
-    months = sorted(set(panel.month))
+    markets, months = sorted(set(panel.mkt_uid)), sorted(set(panel.month))
     boot = []
     for b in range(B):
-        # one seed per draw: every call below gets the identical market x month weights
         wfun = lambda d, sb=SEED + b: pigeonhole_weights(d, np.random.default_rng(sb), markets, months)
-        rtb = rel_table({k: samples[k] for k in ("A_main", "B_update_only")}, w_by=wfun)
-        relb = conservative_rel(rtb)
-        for (s, m), e in evals.items():
-            w = wfun(e)
-            for it in ITEMS:
-                sel = (e["item"] == it).to_numpy() & (w > 0)
-                if sel.sum() < 10:
-                    continue
-                st = weighted_local_stats(e.e_pub.to_numpy()[sel], e.e_obs.to_numpy()[sel], w[sel])
-                r = relb.get(it, np.nan)
-                boot.append({"b": b, "stratum": s, "mode": m, "item": it, "corr": st["corr"], "beta_mz": st["beta_mz"],
-                             "lam": st["lam"], "rel": r, "rho_star": st["corr"] / np.sqrt(r)})
+        rtb = rel_table(samples, w_by=wfun, only=("A_main", "B_update_only"))
+        cbb = combos(rtb, ps, w=wfun)
+        gb, nb = gate(cbb)
+        boot.append({"b": b, "n_over": nb, **{f"rho_{k}": v for k, v in gb.items()}})
     bt = pd.DataFrame(boot)
-    ci = bt.groupby(["stratum", "mode", "item"]).agg(
-        corr_lo=("corr", lambda s: s.quantile(0.025)), corr_hi=("corr", lambda s: s.quantile(0.975)),
-        rho_lo=("rho_star", lambda s: s.quantile(0.025)), rho_hi=("rho_star", lambda s: s.quantile(0.975)),
-        beta_mz_lo=("beta_mz", lambda s: s.quantile(0.025)), beta_mz_hi=("beta_mz", lambda s: s.quantile(0.975)),
-        n_boot=("corr", "size")).reset_index()
-    res = pt.merge(ci, on=["stratum", "mode", "item"], how="left")
 
     OUT.mkdir(parents=True, exist_ok=True)
     rt.to_csv(OUT / "T1_noise_reliability.csv", index=False)
-    res.to_csv(OUT / "T1b_local_information_and_gate.csv", index=False)
-
-    head = res[(res.stratum == "cross_sectional") & (res["mode"] == "own_mu")]
-    n_over = int((head.rho_star >= 0.5).sum())
-    gate = "PIVOT" if n_over >= 2 else "PROCEED"
+    cb.to_csv(OUT / "T1b_gate_combinations.csv", index=False)
+    summ = pd.DataFrame({"conservative_rho_star": g,
+                         "boot_lo": [bt[f"rho_{it}"].quantile(0.025) for it in g.index],
+                         "boot_hi": [bt[f"rho_{it}"].quantile(0.975) for it in g.index]})
+    summ.to_csv(OUT / "T1c_gate_summary.csv")
+    verdict = "PIVOT" if n_over >= 2 else "PROCEED"
+    share_pivot = float((bt.n_over >= 2).mean())
+    pd.Series({"items_over_0.5": n_over, "verdict": verdict, "literal_v1_items_over_0.5": n_lit,
+               "literal_v1_verdict": "PIVOT" if n_lit >= 2 else "PROCEED",
+               "bootstrap_share_pivot": share_pivot}).to_csv(OUT / "T1d_gate_verdict.csv")
     pd.set_option("display.width", 250)
-    cols = ["variant", "item", "n_changes", "g0", "var_nu_naive", "rel_naive", "phi", "var_nu_ar1", "rel_ar1"]
-    print(rt[cols].round(5).to_string(index=False))
-    print(res[["stratum", "mode", "item", "n", "corr", "corr_lo", "corr_hi", "beta_mz", "lam", "rel_conservative",
-               "rho_star", "rho_lo", "rho_hi"]].round(3).to_string(index=False))
-    print(f"GATE G1: {n_over} of 4 items with rho* >= 0.5 (cross-sectional, both-imputed, own_mu) -> {gate}")
-    return rt, res, gate, n_over
+    print(rt[["variant", "item", "n_changes", "g0", "var_nu_naive", "rel_naive", "phi", "rel_ar1"]].round(4).to_string(index=False))
+    print(cb.round(3).to_string(index=False))
+    print(summ.round(3).to_string())
+    print(f"GATE G1 (D2-faithful): {n_over} of 4 items -> {verdict}; literal_v1: {n_lit} of 4; bootstrap share PIVOT {share_pivot:.3f}")
 
 
 if __name__ == "__main__":
