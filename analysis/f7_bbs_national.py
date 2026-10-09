@@ -17,10 +17,13 @@ from rtfp.metrics import national_changes
 OUT = Path("outputs/tables")
 
 
-def hac_fit(y, x, lags):
+def hac_fit(y, x, lags, period=None):
     d = pd.concat([y, x], axis=1).dropna()
     f = sm.OLS(d.iloc[:, 0], sm.add_constant(d.iloc[:, 1])).fit(cov_type="HAC", cov_kwds={"maxlags": lags})
-    return {"n_months": len(d), "corr": d.corr().iloc[0, 1], "slope": f.params.iloc[1], "slope_se_hac": f.bse.iloc[1]}
+    out = {"n_months": len(d), "corr": d.corr().iloc[0, 1], "slope": f.params.iloc[1], "slope_se_hac": f.bse.iloc[1]}
+    if period is not None:
+        out.update(first_month=period.loc[d.index].min(), last_month=period.loc[d.index].max())
+    return out
 
 
 def main():
@@ -41,8 +44,8 @@ def main():
     for k, lags in ((1, 3), (3, 6)):
         for src in ("dlog_pub_index", "dlog_obs_index"):
             for period, mask in {"all": m.period >= "2014-12", "2020-08+": m.period >= "2020-08",
-                                 "2007-base (to 2023-03)": m.base == "2005-06", "2021-22 base": m.base == "2021-22"}.items():
-                r = hac_fit(m.loc[mask, f"d{k}"], m.loc[mask, f"{src}_{k}m"], lags)
+                                 "2005-06 base (to 2023-03)": m.base == "2005-06", "2021-22 base": m.base == "2021-22"}.items():
+                r = hac_fit(m.loc[mask, f"d{k}"], m.loc[mask, f"{src}_{k}m"], lags, m.loc[mask, "period"])
                 rows.append({"horizon_months": k, "rtfp_index": src, "period": period, **r})
     t = pd.DataFrame(rows)
     # published vs survey-only national index (partly mechanical: observed cells enter both)

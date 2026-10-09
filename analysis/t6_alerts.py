@@ -127,7 +127,7 @@ def main():
     # simulated survey z that reproduces the EMPIRICAL survey alert rate, apply it to survey, oracle and common-only;
     # pool recall over items with EMPIRICAL survey-alert weights (verifier recommendation)
     emp_items = emp[emp["item"] != "ALL"].set_index(["item", "indicator", "level"])
-    matched = []
+    matched, per_panel = [], []
     for (it, ind), g in sim.groupby(["item", "indicator"]):
         for level in THRESH[ind]:
             key = (it, ind, level)
@@ -142,10 +142,28 @@ def main():
                 a = agreement(gg.z_survey >= cut, gg[col] >= cut)
                 matched.append({"benchmark": name, "item": it, "indicator": ind, "level": level, "recall": a["recall"],
                                 "emp_weight": emp_items.loc[key, "n_ref_pos"], "sim_rate_matched": a["n_ref_pos"] / a["n"]})
+                for k, gk in gg.groupby("panel"):  # same threshold, one panel at a time: Monte Carlo error
+                    ak = agreement(gk.z_survey >= cut, gk[col] >= cut)
+                    if ak["n_ref_pos"] > 0:
+                        per_panel.append({"benchmark": name, "item": it, "indicator": ind, "level": level, "panel": k,
+                                          "recall": ak["recall"], "emp_weight": emp_items.loc[key, "n_ref_pos"]})
     matched = pd.DataFrame(matched)
     mpool = (matched.assign(wr=matched.recall * matched.emp_weight).groupby(["benchmark", "indicator", "level"])
              .agg(wr=("wr", "sum"), w=("emp_weight", "sum")).reset_index())
     mpool["recall_matched"] = mpool.wr / mpool.w
+    pp = pd.DataFrame(per_panel)
+    pp = (pp.assign(wr=pp.recall * pp.emp_weight).groupby(["benchmark", "indicator", "level", "panel"])
+          .agg(wr=("wr", "sum"), w=("emp_weight", "sum")).reset_index())
+    pp["recall"] = pp.wr / pp.w
+    mc = pp.groupby(["benchmark", "indicator", "level"]).recall.agg(
+        recall_mc_se=lambda r: r.std(ddof=1) / np.sqrt(len(r)), n_panels_used="size").reset_index()
+    mpool = mpool.merge(mc, on=["benchmark", "indicator", "level"], how="left")
+    first = panel.month.min()
+    hist_len = ((z.month.dt.year - first.year) * 12 + z.month.dt.month - first.month)
+    meta = pd.DataFrame([{"bootstrap_draws": B, "sim_panels_per_item": SIM_PANELS, "sim_eval_months": SIM_EVAL_MONTHS,
+                          "sim_window_start": a4["WINDOW_START"][:7], "sim_window_months": int(specs[ITEMS[0]].n_months),
+                          "data_history_first_month": str(first.date())[:7], "data_history_months_min": int(hist_len.min()),
+                          "data_history_months_max": int(hist_len.max())}])
 
     # power from the bootstrap SE of recall (accounts for two-way clustering), 80% power, two-sided 5%
     from scipy.stats import norm
@@ -161,6 +179,7 @@ def main():
     matched.to_csv(OUT / "T6_alerts_benchmark_matched_items.csv", index=False)
     mpool.to_csv(OUT / "T6_alerts_benchmark_matched.csv", index=False)
     power.to_csv(OUT / "T6_alerts_power.csv", index=False)
+    meta.to_csv(OUT / "T6_alerts_meta.csv", index=False)
     pd.set_option("display.width", 230)
     cols = ["item", "indicator", "level", "n", "n_ref_pos", "n_pred_pos", "recall", "recall_lo", "recall_hi",
             "precision", "kappa"]

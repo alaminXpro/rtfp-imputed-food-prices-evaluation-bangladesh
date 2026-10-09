@@ -29,6 +29,9 @@ FEATS = ["gap", "dist_obs", "trust", "obs_share24", "item_code", "cal_month", "v
 SEED = 7
 
 
+GAMMA = 0.05  # ACI step size
+
+
 def gap_bin(g):
     return np.where(g.isna(), "na", np.where(g <= 1, "1", np.where(g <= 2, "2", "3+")))
 
@@ -142,7 +145,7 @@ def main():
                 inside = sc_all[mk] <= th
                 covered.extend(inside.tolist())
                 widths.extend((100 * (Q[ahi].to_numpy()[mk] - Q[alo].to_numpy()[mk] + 2 * th)).tolist())
-                alpha = aci_next_alpha(alpha, 1 - cov, 1 - inside.mean(), gamma=0.05)
+                alpha = aci_next_alpha(alpha, 1 - cov, 1 - inside.mean(), gamma=GAMMA)
                 pool.extend(sc_all[mk].tolist())
             aci_state[(name, cov)] = (pool, alpha)
             res.append({"nominal": cov, "method": f"{name}+ACI", "selected": name == chosen, "subset": "all",
@@ -186,6 +189,7 @@ def main():
         deliver[f"hi{k}"] = np.where(sup, deliver.c * np.exp(hi), np.nan)
 
     OUT.mkdir(parents=True, exist_ok=True)
+    t["n_test_releases"] = len(rel_order)  # ACI updates alpha once per test release
     t.to_csv(OUT / "T7_uncertainty.csv", index=False)
     pm.to_csv(OUT / "T7b_coverage_by_month.csv", index=False)
     pd.DataFrame({"selection_block": qs["selection_block"], "test_block": qs["test_block"]}).assign(

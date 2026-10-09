@@ -73,6 +73,20 @@ def test_level_mz_slope_month_demeaned_is_one_for_perfect_cross_section():
     assert level_mz(df, demean="month")["slope"] == pytest.approx(1.0)
 
 
+def test_level_mz_reports_spread_ratio_and_correlation():
+    """slope = corr x SD(y)/SD(c): a slope below 1 can come from low correlation with a SMALLER imputed spread."""
+    from rtfp.metrics import level_mz
+    rng = np.random.default_rng(3)
+    n = 4000
+    ly = rng.normal(0, 0.10, n)
+    lc = 0.5 * ly + rng.normal(0, 0.02, n)   # shrunk imputation: smaller spread, slope of y on c above 1
+    df = pd.DataFrame({"item": "rice", "month": pd.Timestamp("2025-01-01"), "c": np.exp(lc), "y": np.exp(ly)})
+    r = level_mz(df, demean="month")
+    assert r["sd_ratio_c_over_y"] == pytest.approx(np.std(lc) / np.std(ly), rel=1e-6)
+    assert r["corr"] == pytest.approx(np.corrcoef(lc, ly)[0, 1], rel=1e-6)
+    assert r["slope"] == pytest.approx(r["corr"] / r["sd_ratio_c_over_y"], rel=1e-9)
+
+
 def test_fe_ols_recovers_coefficient_with_two_way_clustered_se():
     from rtfp.metrics import fe_ols
     rng = np.random.default_rng(7)

@@ -19,6 +19,9 @@ def rng(s, d=2):
 
 def main():
     rows = []
+    from rtfp.download import as_of_date
+    tm = pd.read_csv(T / "T_A2c_stratum_timing.csv").set_index("stratum").loc[["forecast", "cross_sectional"]]
+    pm_lo, pm_hi = tm.price_month_min.min()[:7], tm.price_month_max.max()[:7]
     t2 = pd.read_csv(T / "T2_levels.csv")
     c2 = t2[(t2.estimate == "c_final") & t2.stratum.isin(["cross_sectional", "forecast"])]
     nat = pd.read_csv(T / "T7n_published_vs_survey_national.csv")
@@ -43,18 +46,19 @@ def main():
                  "verdict": verdict((nat.corr_pub_vs_obs >= 0.8).all() and nat.slope_obs_on_pub.between(0.8, 1.2).all(),
                                     "supported (partly mechanical: observed cells enter both)"),
                  "source": "T7n_published_vs_survey_national.csv"})
+    n_bias_ci = int(((c2.bias_lo < -2) | (c2.bias_hi > 2)).sum())
     h2_bias = (c2.bias_logpct.abs() < 1)
     h2_slope = c2.mz_slope_month_demeaned.between(0.9, 1.1)
     rows.append({"use": "Average price level of a market-month (point estimate)",
-                 "evidence": f"MAPE {rng(c2.mape, 1)}%, median {rng(c2.median_ape, 1)}%, bias {rng(c2.bias_logpct, 1)}%, cells off >10%: {rng(100 * c2.share_err_gt10, 0)}% (T2)",
-                 "rule": "MAPE <= 10% and |bias| <= 2% in every item x stratum",
+                 "evidence": f"MAPE {rng(c2.mape, 1)}%, median {rng(c2.median_ape, 1)}%, bias {rng(c2.bias_logpct, 1)}%, cells off >10%: {rng(100 * c2.share_err_gt10, 0)}%; bias 95% CI extends past ±2% in {n_bias_ci} of {len(c2)} cells; MAPE CI upper bound up to {c2.mape_hi.max():.1f}% (T2)",
+                 "rule": "MAPE <= 10% and |bias| <= 2% in every item x clean stratum (forecast, cross-sectional; toggle, unconfirmed and backfill excluded as in the analysis plan), point estimates",
                  "verdict": verdict((c2.mape <= 10).all() and (c2.bias_logpct.abs() <= 2).all(),
-                                    "supported for the average level, with stated uncertainty"),
+                                    "supported for the average level on point estimates (CIs do not rule out |bias| > 2%)"),
                  "source": "T2_levels.csv"})
     rows.append({"use": "Cross-market price differences (draft-plan H2 criteria)",
-                 "evidence": f"|bias| < 1% in {int(h2_bias.sum())} of {len(c2)} item x stratum cells; month-demeaned calibration slope in [0.9, 1.1] in {int(h2_slope.sum())} of {len(c2)} (range {rng(c2.mz_slope_month_demeaned)}; below 1 = imputed differences between markets too large) (T2)",
+                 "evidence": f"|bias| < 1% in {int(h2_bias.sum())} of {len(c2)} item x stratum cells; month-demeaned calibration slope in [0.9, 1.1] in {int(h2_slope.sum())} of {len(c2)} (range {rng(c2.mz_slope_month_demeaned)}; below 1 = a given imputed difference between markets corresponds on average to a smaller surveyed difference) (T2)",
                  "rule": "H2: |bias| < 1% and slope in [0.9, 1.1] in every item x stratum",
-                 "verdict": verdict((h2_bias & h2_slope).all(), no=f"not supported (slope below 0.9, i.e. imputed cross-market differences overstated, in {int((c2.mz_slope_month_demeaned < 0.9).sum())} of {len(c2)})"),
+                 "verdict": verdict((h2_bias & h2_slope).all(), no=f"not supported (slope below 0.9 in {int((c2.mz_slope_month_demeaned < 0.9).sum())} of {len(c2)}: imputed cross-market differences only partly borne out by the survey)"),
                  "source": "T2_levels.csv"})
     rows.append({"use": "Published high/low band as an uncertainty range",
                  "evidence": f"later survey value inside the band in {100 * band.coverage:.0f}% of test cells (T7)",
@@ -80,9 +84,9 @@ def main():
                  "verdict": verdict(tr.p < 0.05 and share_low_trust >= 0.2, no="limited"),
                  "source": "T4_error_covariates.csv"})
     rows.append({"use": "Imputed history for never-surveyed markets (mostly 2007–2019)",
-                 "evidence": f"never-observed cells: median year {int(never.year_median.median())}, share >= 2020 {rng(never.share_year_ge_2020)}; hold-out covers 2023-09..2026-08 only (A3)",
-                 "rule": "median price year inside the hold-out window (2023-09..2026-08)",
-                 "verdict": verdict(never.year_median.median() >= 2023, yes="evaluable", no="not evaluable with this design"),
+                 "evidence": f"never-observed cells: median year {int(never.year_median.median())}, share >= 2020 {rng(never.share_year_ge_2020)}; hold-out covers {pm_lo}..{pm_hi} only (A3)",
+                 "rule": f"median price year inside the hold-out window ({pm_lo}..{pm_hi})",
+                 "verdict": verdict(never.year_median.median() >= int(pm_lo[:4]), yes="evaluable", no="not evaluable with this design"),
                  "source": "T_A3_covariate_balance.csv"})
     if (T / "T6_alerts.csv").exists():
         e6 = pd.read_csv(T / "T6_alerts.csv")
@@ -94,9 +98,9 @@ def main():
         orc = b6[(b6.benchmark == "oracle_noise_removed") & (b6.level == "alert")].set_index("indicator").recall_matched
         gain = (ipa.recall - com.reindex(ipa.index))
         rows.append({"use": "Early-warning alerts (FAO IPA; all alerts, D4 local-event filter not applied)",
-                     "evidence": f"IPA alert recall {rng(ipa.recall)} vs {rng(com.reindex(ipa.index))} for a simulated value with no local information and {rng(orc.reindex(ipa.index))} for one that removes noise but keeps local signal, base rates matched (T6); ALPS not informative here: {100 * alps_rate:.0f}% of clean cells are 'Alert or Crisis' on survey values",
+                     "evidence": f"IPA alert recall {rng(ipa.recall)} vs {rng(com.reindex(ipa.index))} for a simulated value with no local information and {rng(orc.reindex(ipa.index))} for one that removes noise but keeps local signal, base rates matched (T6); ALPS: {100 * alps_rate:.0f}% of clean cells are already 'Alert or Crisis' on survey values (T6 Claim 2)",
                      "rule": "recall exceeds the no-local-information benchmark by >= 0.10 for both IPA variants",
-                     "verdict": verdict((gain >= 0.10).all()), "source": "T6_alerts.csv, T6_alerts_benchmark.csv"})
+                     "verdict": verdict((gain >= 0.10).all()), "source": "T6_alerts.csv, T6_alerts_benchmark_matched.csv, T6_alerts_zscores.csv"})
     else:
         rows.append({"use": "Early-warning alerts (FAO IPA)", "evidence": "", "rule": "", "verdict": "pending",
                      "source": "T6 (not yet produced)"})
@@ -107,7 +111,7 @@ def main():
     (N / "T8.md").write_text("# T8 — What the imputed prices can and cannot support (Task 4.4)\n\n"
                              "*Generated by `analysis/t8_safe_use.py` from the result tables; each verdict follows the stated rule.*\n\n"
                              + "\n".join(lines) + "\n\n**Caveat.** All rows are exploratory (pre-registration) and describe RTFP "
-                             "Bangladesh releases 2024-01-25 to 2026-10-05, evaluated on cells surveyed after imputation (price months 2023-09 to 2026-08). "
+                             f"Bangladesh releases up to the data cutoff {as_of_date() or 'latest'}, evaluated on clean cells (forecast and cross-sectional strata) surveyed after imputation (price months {pm_lo} to {pm_hi}). "
                              "The rules are judgement thresholds chosen for readability, stated so readers can apply their own.\n")
     print(t[["use", "verdict"]].to_string(index=False))
 

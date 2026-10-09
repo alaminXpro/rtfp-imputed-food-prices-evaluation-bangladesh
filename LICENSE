@@ -16,8 +16,10 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY
 CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 IN THE SOFTWARE.
 
-Derived data produced by this code (outputs/tables/) are released under CC BY 4.0, except that no BBS- or
-TCB-derived values are redistributed: tables built from those sources contain only summary statistics (e.g.
-correlations, reliabilities), and the underlying series are regenerated locally by the scripts. Third-party source data keep
-their own terms: see data/raw/LICENSES.md (World Bank RTFP: CC BY 4.0 with World Bank terms; WFP/HDX: CC BY-IGO;
-BBS and TCB: no licence stated, download scripts only).
+Derived data produced by this code (outputs/tables/) are released under CC BY 4.0. Tables built from BBS or TCB
+sources contain only summary statistics (e.g. correlations, reliabilities); the underlying BBS and TCB series are
+not redistributed and are regenerated locally by the scripts. Short excerpts of published BBS CPI tables and TCB
+price bulletins appear in tests/test_bbs.py and tests/test_tcb.py as parser test values, with acknowledgement of
+the source (Bangladesh Bureau of Statistics; Trading Corporation of Bangladesh); they are not covered by the MIT or
+CC BY 4.0 grants. Third-party source data keep their own terms: see data/raw/LICENSES.md (World Bank RTFP: CC BY
+4.0 with World Bank terms; WFP/HDX: CC BY-IGO 3.0; BBS and TCB: no licence stated, download scripts only).

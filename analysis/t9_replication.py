@@ -234,7 +234,7 @@ def bgd_consistency(t: pd.DataFrame) -> dict:
             "n_local_cells": len(keys)}
 
 
-def stage_note() -> None:
+def stage_note(work: Path) -> None:
     sel = pd.read_csv(SEL)
     t = pd.read_csv(OUT / "T9_replication.csv")
     au = pd.read_csv(OUT / "T9c_audit.csv")
@@ -307,13 +307,18 @@ def stage_note() -> None:
     in_rng = lambda r: int(((r >= 0.5) & (r <= 1)).sum())
     over1 = lambda r: int((r > 1).sum())
     rho_cs_A = ok.rho_star_A_naive_cross_sectional.dropna()
+    o1 = cs[cs.rho_star_conservative_cross_sectional > 1]
+    over1_txt = "; ".join(f"{r.iso3} {r.item} {r.rho_star_conservative_cross_sectional:.2f}: {int(r.n_update_only_cross_sectional)} update-only pairs, "
+                          f"variant-B reliability {r.rel_B_naive:.2f}" for r in o1.itertuples(index=False)) or "none"
     # level accuracy without cells whose published value is a different scale from the survey value (c/y > 5 or < 0.2)
-    der = Path(tempfile.gettempdir()) / "rtfp_t9_work" / "derived"
+    der = work / "derived"
+    missing = [f"{r.iso3}_{r.item}" for r in ok.itertuples(index=False) if not (der / f"{r.iso3}_{r.item}_holdout.parquet").exists()]
+    if missing:  # never silently rewrite T9d from a partial set
+        raise FileNotFoundError(f"{len(missing)} derived hold-out files missing under {der} (e.g. {missing[:3]}); "
+                                "rerun the 'run' stage or pass --work")
     robust = []
     for r in ok.itertuples(index=False):
         f = der / f"{r.iso3}_{r.item}_holdout.parquet"
-        if not f.exists():
-            continue
         h = pd.read_parquet(f)
         h = h[h.stratum.astype(str).isin(["forecast", "cross_sectional"]) & h.y_eval.notna()]
         ratio = h.c_final / h.y_eval
@@ -331,11 +336,11 @@ def stage_note() -> None:
 
 **Claim.** On {len(chosen)} other RTFP countries ({len(ok)} country-items), with the Bangladesh pipeline and three disclosed changes (markets whose name moves > 3 km across releases are dropped and listed; the noise sample is all markets over six years because the Division filter does not transfer; the WFP audit series is chosen from the data), results **vary across countries and items rather than replicate uniformly**:
 - Cross-sectional both-imputed local correlation: {q(cs.corr_cross_sectional)} across the {len(cs)} items where it is defined ({n_cs10} items have ≥ 10 pairs; it is undefined when all survey changes are identical). It is positive for {cs_pos} of {len(cs)}, but its 95% interval excludes zero for only {cs_excl0} ({excl0_items}).
-- Noise-corrected ρ*: in [0.5, 1] for {in_rng(rho_cs)} of {len(rho_cs)} items; {over1(rho_cs)} more exceed 1 and are not interpretable as correlations (small update-only subsets with low estimated reliability). With variant A alone: in [0.5, 1] for {in_rng(rho_cs_A)} of {len(rho_cs_A)} ({over1(rho_cs_A)} exceed 1).
+- Noise-corrected ρ*: in [0.5, 1] for {in_rng(rho_cs)} of {len(rho_cs)} items; {over1(rho_cs)} more exceed 1 and are not interpretable as correlations ({over1_txt}). With variant A alone: in [0.5, 1] for {in_rng(rho_cs_A)} of {len(rho_cs_A)} ({over1(rho_cs_A)} exceed 1).
 - Forecast stratum: {q(fc.corr_forecast)} ({len(fc)} items); no interval excludes zero ({fc_excl0} of {len(fc)}); ρ* in [0.5, 1] for {in_rng(rho_fc)} of {len(rho_fc)} ({over1(rho_fc)} exceed 1).
 - Items whose plain column passed the ≥ 90% audit ({len(passed)}): cross-sectional correlation {q(cs_p.corr_cross_sectional)} ({len(cs_p)} items); ρ* in [0.5, 1] for {in_rng(rho_cs_p)} of {len(rho_cs_p)} ({over1(rho_cs_p)} exceed 1).
 - Persistent survey spikes caught by a same-direction published move: {sp_c} of {sp_tot}{f" ({sp_c / sp_tot:.1%})" if sp_tot else ""}.
-- Level-error outliers from scale mismatches: {len(rb)} items have clean cells whose published value is > 5× or < 0.2× the survey value (a unit or scale error, not imputation error); see `T9d_scale_mismatch.csv` for MAPE without them.
+- Level-error outliers from scale mismatches: {len(rb)} items have clean cells whose published value is > 5× or < 0.2× the survey value. These may be unit or scale mismatches or gross imputation errors; this was not verified. See `T9d_scale_mismatch.csv` for MAPE without them.
 
 ## 1. Country selection (fixed before any country's results)
 
@@ -390,7 +395,7 @@ Items below 90% ({int((~aud.audit_pass.fillna(False).astype(bool)).sum())} of {l
 
 ## 5. Method facts
 
-- Pipeline: `src/rtfp/replicate.py` (driver; tests in `tests/test_replicate.py` on synthetic inputs) calling `rtfp.vintages` (stack, hold-out, strata toggle > unconfirmed > backfill (> 6 months) > forecast > cross-sectional, change pairs), `rtfp.noise`, `rtfp.metrics` and `rtfp.audit`; the only change from Bangladesh is `build_stack(..., on_drift='drop')`, which removes markets whose name moves > 3 km across releases (geocoding defects) and records them per item in `dropped_markets_location_jump`.
+- Pipeline: `src/rtfp/replicate.py` (driver; tests in `tests/test_replicate.py` on synthetic inputs) calling `rtfp.vintages` (stack, hold-out, strata toggle > unconfirmed > backfill (> 6 months) > forecast > cross-sectional, change pairs), `rtfp.noise`, `rtfp.metrics` and `rtfp.audit`; the only change to the stacking step is `build_stack(..., on_drift='drop')`, which removes markets whose name moves > 3 km across releases (geocoding defects) and records them per item in `dropped_markets_location_jump`; the noise sample and the data-chosen audit series also differ from Bangladesh (Claim).
 - Noise variant A for every country: all markets except 'Market Average', price months from 6 years before the latest vintage month; variant B drops exact-zero changes. There is no Division-series equivalent outside Bangladesh, so Table 1's A_main filter is not transferable.
 - Bootstrap clusters as Tables 2–3: hold-out markets × months for levels, latest-panel markets × months for correlations; seed {SEED}.
 - Downloads: {len(zips)} market-file vintages for the five countries plus the latest file of every candidate, `data/raw/rtfp_other/` with sha256 manifest `data/raw/rtfp_other/MANIFEST.csv`; ≥ {MIN_INTERVAL} s between requests. Results computed {computed}.
@@ -426,7 +431,7 @@ def main(argv=None) -> int:
     if a.stage in ("run", "all"):
         stage_run(a.work, only=a.only)
     if a.stage in ("note", "all"):
-        stage_note()
+        stage_note(a.work)
     return 0
 
 

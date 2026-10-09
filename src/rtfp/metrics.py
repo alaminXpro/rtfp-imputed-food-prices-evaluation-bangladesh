@@ -73,7 +73,9 @@ def level_mz(df: pd.DataFrame, demean: str = "month") -> dict:
     elif demean != "none":
         raise ValueError(demean)
     lcd, lyd = lc - lc.mean(), ly - ly.mean()
-    return {"slope": (lcd * lyd).sum() / (lcd**2).sum(), "n": len(lc)}
+    sx, sy = np.sqrt((lcd**2).mean()), np.sqrt((lyd**2).mean())
+    return {"slope": (lcd * lyd).sum() / (lcd**2).sum(), "n": len(lc),
+            "sd_ratio_c_over_y": sx / sy, "corr": (lcd * lyd).mean() / (sx * sy)}
 
 
 def fe_ols(df: pd.DataFrame, y: str, xs: list, fe: str, clusters: list) -> pd.DataFrame:

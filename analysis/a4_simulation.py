@@ -204,6 +204,10 @@ def write_note(t: pd.DataFrame, best: pd.DataFrame, nc: pd.DataFrame, calib: pd.
     n_beta_in, n_lam_in = int(cm.beta_mz_in_range.sum()), int(cm.lam_in_range.sum())
     lam_out = cm[~cm.lam_in_range]
     ok_all = cm[cm.all_in_range]
+    other = cm[~cm.all_in_range & cm.lam_in_range]
+    beta_txt = ("Where λ fits, the oracle is still ruled out by " + "; ".join(
+        f"{r.item} {r.mode}: " + ", ".join(k for k, ok in (("corr", r.corr_in_range), ("β_MZ", r.beta_mz_in_range)) if not ok)
+        for r in other.itertuples()) + ". ") if len(other) else ""
     ok_txt = ", ".join(f"{r.item} {r.mode}" for r in ok_all.itertuples()) or "none"
     nr = nc.assign(naive=nc.var_nu_naive_mean / nc.var_nu_true, ar1=nc.var_nu_ar1_mean_identified / nc.var_nu_true)
     nrw, nro = nr[nr.noise == "white"], nr[nr.noise != "white"]
@@ -217,11 +221,11 @@ calibrated to the data; they are not estimates from the data.*
 
 **Claim.** In panels calibrated to the Bangladesh panel (104 markets, Table 1 noise, the empirical observation
 pattern and hold-out size), a calibrated conditional-mean imputer (an oracle that knows the true covariance) does
-not reproduce the empirical pattern, and the statistic that rules it out is λ, not β_MZ. Its simulated 95% range
+not reproduce the empirical pattern, and it is ruled out mainly by λ, not β_MZ. Its simulated 95% range
 contains the empirical β_MZ in {n_beta_in} of {n_cells} item × mode cells (simulated within-month β_MZ is
 {_f(cm_wm.beta_mz_mean.mean())} on average but varies widely across panels), while it contains the empirical λ in only
 {n_lam_in} of {n_cells}: the empirical λ lies above the simulated range in {', '.join(f"{r.item} {r.mode} ({_f(r.lam_emp, 3)} vs {_f(r.lam_lo, 3)}–{_f(r.lam_hi, 3)})" for r in lam_out.itertuples())}.
-The cells where all three statistics (corr, β_MZ, λ) fit the oracle: {ok_txt}. Imputer type(s) whose simulated 95%
+{beta_txt}The cells where all three statistics (corr, β_MZ, λ) fit the oracle: {ok_txt}. Imputer type(s) whose simulated 95%
 ranges contain all three empirical statistics in the most item × mode cells: {top_txt}.
 
 **Simulated statistics by imputer** (white survey noise; mean over the 4 items of the per-item median across panels;

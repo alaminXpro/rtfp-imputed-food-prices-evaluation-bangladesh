@@ -788,8 +788,9 @@ def captions(r, root, fig_dir, inputs, latest_vintage, n_clean, clean_range):
           "**By month (panel c):** " + "; ".join(
               f"{mm}: {f2(c)} (n {fint(n)})" for mm, c, n in zip(pm.month, pm["mean"], pm["size"])) + ".", "",
           "**Caveats.** Per-month coverage is available in T7b only for the once-calibrated candidate, not for the "
-          "online-recalibrated interval. ACI attains near-nominal long-run coverage by construction (Gibbs & Candes "
-          "2021), so its pooled coverage is weak evidence of calibration in any month or group. Pooled coverage hides month-to-month dispersion; months are not independent "
+          "online-recalibrated interval. Its level is updated once per test release, only "
+          f"{int(dv.n_test_releases)} times, so ACI's long-run guarantee (Gibbs & Candes 2021) does not apply; its pooled "
+          "coverage is evidence from one short window and weak evidence of calibration in any month or group. Pooled coverage hides month-to-month dispersion; months are not independent "
           "test sets. The test block is the last part of the release history only; it holds "
           f"{fint(f['n_test_stratum']['forecast'])} forecast and {fint(f['n_test_stratum']['cross_sectional'])} "
           "cross-sectional cells (T7 subsets), so coverage for cross-sectional cells is barely tested.", ""]

@@ -10,10 +10,10 @@ Inputs (sha256, first 12 hex):
 - `data/interim/vintages.parquet` ac2466f07168
 - `data/interim/holdout.parquet` eaad7bdb4da3
 - `data/interim/change_pairs.parquet` 906a3bd722d4
-- `outputs/tables/T2_levels.csv` dd7f109a6985
+- `outputs/tables/T2_levels.csv` 00a2e4e275e7
 - `outputs/tables/T3_local_changes.csv` 3878fea3a8d1
 - `outputs/tables/T4b_error_by_trust.csv` 552f53c45df2
-- `outputs/tables/T7_uncertainty.csv` 3486a5c6a553
+- `outputs/tables/T7_uncertainty.csv` 0e93e6385873
 - `outputs/tables/T7b_coverage_by_month.csv` f85228e5c420
 
 Colour key used throughout: cross-sectional = blue circles, forecast = orange squares, toggle = aqua diamonds (shape repeats the colour, so the figures read in greyscale and under colour-vision deficiency).
@@ -191,5 +191,5 @@ Points outside the plotted range (15; included in every fit):
 
 **By month (panel c):** 2026-02: 0.89 (n 9); 2026-03: 0.73 (n 150); 2026-04: 0.60 (n 149); 2026-05: 0.49 (n 187); 2026-06: 0.73 (n 181); 2026-07: 0.79 (n 262); 2026-08: 0.82 (n 191).
 
-**Caveats.** Per-month coverage is available in T7b only for the once-calibrated candidate, not for the online-recalibrated interval. ACI attains near-nominal long-run coverage by construction (Gibbs & Candes 2021), so its pooled coverage is weak evidence of calibration in any month or group. Pooled coverage hides month-to-month dispersion; months are not independent test sets. The test block is the last part of the release history only; it holds 1,100 forecast and 29 cross-sectional cells (T7 subsets), so coverage for cross-sectional cells is barely tested.
+**Caveats.** Per-month coverage is available in T7b only for the once-calibrated candidate, not for the online-recalibrated interval. Its level is updated once per test release, only 5 times, so ACI's long-run guarantee (Gibbs & Candes 2021) does not apply; its pooled coverage is evidence from one short window and weak evidence of calibration in any month or group. Pooled coverage hides month-to-month dispersion; months are not independent test sets. The test block is the last part of the release history only; it holds 1,100 forecast and 29 cross-sectional cells (T7 subsets), so coverage for cross-sectional cells is barely tested.
 

@@ -19,12 +19,14 @@ OUT = Path("outputs/tables")
 
 def summarise(d, cvar):
     s = level_stats(d[cvar], d.y_eval)
-    mz_m = level_mz(d.rename(columns={cvar: "c", "y_eval": "y"}), demean="month")["slope"]
+    mzm = level_mz(d.rename(columns={cvar: "c", "y_eval": "y"}), demean="month")
+    mz_m = mzm["slope"]
     mz_n = level_mz(d.rename(columns={cvar: "c", "y_eval": "y"}), demean="none")["slope"]
     lc, ly = np.log(d[cvar]), np.log(d.y_eval)
     band = d.l_final.notna() & d.h_final.notna()
     inside = ((d.y_eval >= d.l_final) & (d.y_eval <= d.h_final))[band]
-    return {**s, "mz_slope_month_demeaned": mz_m, "mz_slope_raw": mz_n, "corr_log_levels": np.corrcoef(lc, ly)[0, 1],
+    return {**s, "mz_slope_month_demeaned": mz_m, "mz_sd_ratio_imp_over_survey": mzm["sd_ratio_c_over_y"],
+            "mz_corr_month_demeaned": mzm["corr"], "mz_slope_raw": mz_n, "corr_log_levels": np.corrcoef(lc, ly)[0, 1],
             "band_coverage": inside.mean() if cvar == "c_final" else np.nan,
             "band_halfwidth_pct": (50 * (d.h_final - d.l_final) / d.c_final)[band].median() if cvar == "c_final" else np.nan}
 
