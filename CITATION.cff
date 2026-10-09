@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If you use this code or derived data, please cite it as below."
+title: "Release-history evaluation of the World Bank's ML-imputed Real-Time Food Prices (Bangladesh): code and derived data"
+authors:
+  - name: "MD. AL AMIN"
+  - name: "CO-AUTHOR NAME (to be added)"
+version: "0.1.0"
+license: MIT
+repository-code: "TO BE ADDED AT RELEASE"
+keywords: [food prices, imputation, data quality, early warning, conformal prediction, Bangladesh, World Bank RTFP]
