@@ -15,9 +15,9 @@
 - Primary dataset: newest RTFP Bangladesh vintage (currently 2026-10-05). Re-pull before the final run; record the version in every output.
 - Items: rice, wheat flour, palm oil, lentils. Unit: market × month × item.
 - **Market key = internal `mkt_uid` from the crosswalk (Task 1.3).** geo_id is re-keyed on 2024-03-18 and 2025-03-31 and must not be used across vintages.
-- Observed side uses `log y` (plain column); imputed side uses `log ĉ` (`c_`). Truth for a hold-out cell = y in the first vintage where it is observed.
+- Observed side uses `log y` (plain column); imputed side uses `log ĉ` (`c_`). Evaluation truth for a hold-out cell = y in the latest vintage (equals the WFP feed); first-observed value kept for revisions.
 - Local component: each side demeaned by its own vintage's observed-cell month mean; pooled versions reported alongside.
-- **One hold-out definition** with strata toggle / forecast / cross-sectional and pair types (methodology M1). Headline = cross-sectional stratum, both-imputed pairs.
+- **One hold-out definition** with strata toggle > unconfirmed > backfill (>6 months) > forecast > cross-sectional and pair types (methodology M1). Headline = cross-sectional stratum, both-imputed pairs.
 - Rice is absent from 38 vintages: vintage-dependent quantities use only vintages containing the item.
 - Every number handed to the co-author comes from a script in `analysis/`.
 - Confirmatory H1–H2 use only releases published after registration (methodology M4).
@@ -95,7 +95,7 @@ DA Paper/
 #### Task 1.3: Crosswalk, vintages and hold-out (`crosswalk.py`, `vintages.py`)
 - [ ] Crosswalk: mkt_name + lat/lon tolerance → mkt_uid across all vintages. **Test:** the re-keyings of 2024-03-18 and 2025-03-31 map 1:1; unmatched markets listed.
 - [ ] Stack vintages → `vintages.parquet` (vintage, mkt_uid, month, item, y, ĉ, h_, l_, trust) with per-vintage item availability.
-- [ ] H with ĉ_first, ĉ_final, truth = y at first observed vintage; strata toggle → forecast → cross-sectional (precedence in that order); pair types.
+- [x] H with ĉ_first, ĉ_final, truth = latest-vintage y; strata toggle > unconfirmed > backfill > forecast > cross-sectional; pair types. (Done 2026-10-09; Tables A2–A3.)
 - [ ] Covariate balance H vs never-observed cells.
 - **Outputs:** Table A2 (H counts by item × stratum × year; change-pair counts by pair type), Table A3 (balance).
 - **Tests:** toy vintages → expected membership, strata precedence, toggle detection, pair typing, first/final values.

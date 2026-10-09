@@ -32,12 +32,16 @@
 - Derived: `gap` (months since the market's last observation in v), `dist_obs` (km to nearest market observed in t in v), `n_obs_month`.
 
 ### Hold-out H (Task 1.3)
-A cell (mkt_uid, t, k) enters H if it is imputed in vintage v (y missing, ĉ present) and observed in a later vintage v′. Truth = y in the **first** vintage where the cell is observed (revision against the latest vintage as robustness). Two imputed values per cell: `ĉ_first` (earliest vintage containing t and item k) and `ĉ_final` (last vintage before observed).
+A cell (mkt_uid, t, k) enters H at its first observed vintage `v_truth` that follows an imputed vintage; `v_final` is the last imputed vintage before it (the estimate judged); `ĉ_first` is its earliest imputed value. **Evaluation truth = y in the latest vintage** (`y_eval`), which equals the WFP/HDX feed exactly (Table A1); the first-observed value is kept for revision statistics (Table A2d). *Revised 2026-10-09: ~1,000 values that appeared in single releases are absent from both the latest release and the WFP feed.*
 
-**Strata (mutually exclusive, precedence top-down):**
-1. **Toggle:** the cell's survey value appeared in any vintage before v. Not a late arrival; reported separately, never in the headline.
-2. **Forecast:** zero markets observed for item k in month t in vintage v. The model had no same-month information; national error dominates.
-3. **Cross-sectional:** month t partly observed in v. The model knew μ_t; this is the clean test of *local* information and the headline stratum.
+**Strata (mutually exclusive, precedence top-down; v = v_final):**
+1. **Toggle:** the survey value appeared in a vintage before v (releases alternate between 'full' and 'reduced' pipelines that drop and restore values). Not a late arrival; reported separately.
+2. **Unconfirmed:** the value that appeared is not observed in the latest vintage, hence not in the WFP feed. Excluded.
+3. **Backfill:** arrived more than 6 months after the price month (sensitivity 3 and 12). Historical additions; reported separately.
+4. **Forecast:** zero markets observed for item k in month t in v. Real-time nowcast; median lag 1 month.
+5. **Cross-sectional:** month t partly observed in v. The model knew μ_t; the clean test of *local* information and the headline stratum.
+
+Clean strata (4–5) hold 5,768 cells, price months 2023-09 to 2026-08 (Table A2). Results therefore describe recent imputations; never-observed cells are mostly 2007–2019 history.
 
 **Change pairs** (t−1, t), both ĉ from the same vintage:
 - *both-imputed* (headline);
