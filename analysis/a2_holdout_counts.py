@@ -73,8 +73,7 @@ def main():
         return pd.Series({"group": label, "n": len(df), "year_median": df.month.dt.year.median(),
                           "share_year_ge_2020": (df.month.dt.year >= 2020).mean(),
                           "gap_median": df[gap].median(), "gap_missing_share": df[gap].isna().mean(),
-                          "dist_obs_km_median": df[dist].median(), "trust_median": df[trust].median(),
-                          "data_coverage_median": df.data_coverage.median()})
+                          "dist_obs_km_median": df[dist].median(), "trust_median": df[trust].median()})
     rows = []
     for it in sorted(h.item.unique()):
         rows.append(summ(hn[hn.item == it], "gap_final", "dist_obs_final", "trust_final", f"{it}: holdout (forecast+cross-sectional)"))

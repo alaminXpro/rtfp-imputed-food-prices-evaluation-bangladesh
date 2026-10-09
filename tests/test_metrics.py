@@ -71,3 +71,30 @@ def test_level_mz_slope_month_demeaned_is_one_for_perfect_cross_section():
                        "c": [100, 110, 120, 200, 220, 240.0]})
     df["y"] = df.c * np.where(df.month == "2025-01-01", 1.0, 1.1)  # month-common error only
     assert level_mz(df, demean="month")["slope"] == pytest.approx(1.0)
+
+
+def test_fe_ols_recovers_coefficient_with_two_way_clustered_se():
+    from rtfp.metrics import fe_ols
+    rng = np.random.default_rng(7)
+    n = 3000
+    df = pd.DataFrame({"mkt_uid": rng.integers(0, 60, n).astype(str), "fe": rng.integers(0, 30, n).astype(str),
+                       "x": rng.normal(size=n)})
+    df["month"] = df.fe
+    df["y"] = 2.0 * df.x + df.fe.astype(int) * 0.1 + rng.normal(size=n)
+    r = fe_ols(df, "y", ["x"], fe="fe", clusters=["mkt_uid", "month"])
+    assert r.loc["x", "coef"] == pytest.approx(2.0, abs=0.1)
+    assert 0 < r.loc["x", "se"] < 0.1 and r.loc["x", "n"] == n
+
+
+def test_fe_ols_flags_regressor_absorbed_by_fixed_effects():
+    from rtfp.metrics import fe_ols
+    rng = np.random.default_rng(8)
+    n = 600
+    df = pd.DataFrame({"mkt_uid": rng.integers(0, 30, n).astype(str), "fe": rng.integers(0, 20, n).astype(str),
+                       "x": rng.normal(size=n)})
+    df["month"] = df.fe
+    df["const_in_fe"] = df.fe.astype(int) * 1.5  # constant within each FE group
+    df["y"] = df.x + rng.normal(size=n)
+    r = fe_ols(df, "y", ["x", "const_in_fe"], fe="fe", clusters=["mkt_uid", "month"])
+    assert r.loc["const_in_fe", "absorbed"] and np.isnan(r.loc["const_in_fe", "coef"])
+    assert not r.loc["x", "absorbed"] and r.loc["x", "coef"] == pytest.approx(1.0, abs=0.15)

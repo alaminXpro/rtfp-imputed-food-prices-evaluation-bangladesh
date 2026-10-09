@@ -81,7 +81,7 @@ Language: *framework*, *expectations*, *measurement* — no *propositions*, *ide
 1. *Levels:* MAPE, median APE, bias, level MZ slope (market-FE; month-demeaned), Bland–Altman; Adewopo-style level correlations for comparability.
 2. *Local changes:* corr(ê, e_obs), β_MZ, λ, β_rev, ρ* (with the D2 band). Within-month×item demeaned and pooled versions.
 3. *Spikes:* a survey spike is |Δy_t| > 10% whose level shift persists (≥ 50% of the jump retained at t+1, same sign), with (t, t+1) observed in v′ (conditioning stated). Share of spikes where ê moved ≥ 5% in the same direction.
-4. *Error vs covariates:* |level error| and |ê − e_obs| on gap, dist_obs, trust, data coverage, vintage age; month FE; two-way clustered SEs. Does the trust score predict external error?
+4. *Error vs covariates:* |level error| and |ê − e_obs| on gap, dist_obs, trust, vintage age (RTFP's `data_coverage` is one value per release for all markets, so it is not a cell covariate); month FE; two-way clustered SEs. Does the trust score predict external error?
 5. *Revision paths* across vintages containing the item.
 Inference: two-way (market × month) cluster bootstrap, B = 1,000, with rel resampled jointly so ρ*'s CI includes noise-estimate uncertainty. Holm across items.
 
@@ -111,7 +111,7 @@ Inference: two-way (market × month) cluster bootstrap, B = 1,000, with rel resa
 
 **D5 — Calibrated uncertainty (Task 5.1).**
 - Target: log(y/ĉ), i.e. the value the survey will report (latent-price intervals would be wider).
-- Quantile LightGBM at 5/10/50/90/95%; features: gap, dist_obs, trust, data coverage, item, month, vintage age, stratum.
+- Quantile LightGBM at 5/10/50/90/95%; features: gap, dist_obs, trust, market-level observed share up to v_final (computed by us; RTFP's `data_coverage` is release-level), item, month, vintage age, stratum.
 - **Three-way time-blocked split** by first-observed vintage: train ≤ T1, calibrate (T1, T2], test > T2.
 - Conformalized quantile regression (Romano et al. 2019), Mondrian by gap × distance. Weighted conformal (Tibshirani et al. 2019) only within the covariate support of H.
 - **Support restriction:** intervals released only for cells with gap ≤ max(H), dist_obs ≤ max(H), and markets with ≥ 1 observation; others flagged "no calibrated interval".

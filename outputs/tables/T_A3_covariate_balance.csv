@@ -1,9 +1,9 @@
-group,n,year_median,share_year_ge_2020,gap_median,gap_missing_share,dist_obs_km_median,trust_median,data_coverage_median
-lentils: holdout (forecast+cross-sectional),1612,2025.0,1.0,1.0,0.002,42.696,10.0,20.31
-lentils: never observed,21882,2015.0,0.257,11.0,0.932,55.933,4.5,24.08
-oil: holdout (forecast+cross-sectional),1705,2025.0,1.0,1.0,0.002,44.366,10.0,20.52
-oil: never observed,21219,2015.0,0.232,13.0,0.939,57.324,8.6,24.08
-rice: holdout (forecast+cross-sectional),823,2025.0,1.0,1.0,0.002,39.761,10.0,19.42
-rice: never observed,22196,2015.0,0.267,9.0,0.903,57.324,9.0,24.08
-wheat_flour: holdout (forecast+cross-sectional),1628,2024.0,1.0,1.0,0.036,40.603,10.0,20.31
-wheat_flour: never observed,21080,2015.0,0.243,11.0,0.927,56.984,7.9,24.08
+group,n,year_median,share_year_ge_2020,gap_median,gap_missing_share,dist_obs_km_median,trust_median
+lentils: holdout (forecast+cross-sectional),1612,2025.0,1.0,1.0,0.002,42.696,10.0
+lentils: never observed,21882,2015.0,0.257,11.0,0.932,55.933,4.5
+oil: holdout (forecast+cross-sectional),1705,2025.0,1.0,1.0,0.002,44.366,10.0
+oil: never observed,21219,2015.0,0.232,13.0,0.939,57.324,8.6
+rice: holdout (forecast+cross-sectional),823,2025.0,1.0,1.0,0.002,39.761,10.0
+rice: never observed,22196,2015.0,0.267,9.0,0.903,57.324,9.0
+wheat_flour: holdout (forecast+cross-sectional),1628,2024.0,1.0,1.0,0.036,40.603,10.0
+wheat_flour: never observed,21080,2015.0,0.243,11.0,0.927,56.984,7.9

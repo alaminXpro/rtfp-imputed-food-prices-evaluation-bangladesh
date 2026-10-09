@@ -74,3 +74,37 @@ def level_mz(df: pd.DataFrame, demean: str = "month") -> dict:
         raise ValueError(demean)
     lcd, lyd = lc - lc.mean(), ly - ly.mean()
     return {"slope": (lcd * lyd).sum() / (lcd**2).sum(), "n": len(lc)}
+
+
+def fe_ols(df: pd.DataFrame, y: str, xs: list, fe: str, clusters: list) -> pd.DataFrame:
+    """OLS of y on xs with fixed effects `fe` (absorbed as dummies) and one- or two-way clustered SEs."""
+    import statsmodels.api as sm
+
+    d = df[[y] + xs + [fe] + clusters].dropna()
+    # a regressor with (almost) no variation within FE groups is absorbed: report it, do not estimate it
+    within = {x: (d[x] - d.groupby(fe)[x].transform("mean")).var() for x in xs}
+    absorbed = [x for x in xs if not within[x] > 1e-10 * max(d[x].var(), 1e-300)]
+    keep = [x for x in xs if x not in absorbed]
+    if not keep:
+        raise ValueError(f"all regressors absorbed by fixed effects: {absorbed}")
+    xs_all, xs = xs, keep
+    X = pd.concat([d[xs].astype(float), pd.get_dummies(d[fe].astype(str), prefix="fe", drop_first=True, dtype=float)],
+                  axis=1)
+    X = sm.add_constant(X)
+    groups = np.column_stack([pd.factorize(d[c].astype(str))[0] for c in clusters])
+    groups = groups[:, 0] if groups.shape[1] == 1 else groups
+    import warnings
+
+    fit = sm.OLS(d[y].astype(float), X).fit(cov_type="cluster", cov_kwds={"groups": groups})
+    with warnings.catch_warnings():
+        # two-way cluster covariance (Cameron-Gelbach-Miller) need not be PSD for absorbed dummies;
+        # only the reported regressors must have valid SEs, checked below.
+        warnings.simplefilter("ignore", RuntimeWarning)
+        se, pv = fit.bse[xs], fit.pvalues[xs]
+    if not np.isfinite(se).all():
+        raise ValueError(f"non-finite clustered SE for {list(se[~np.isfinite(se)].index)}")
+    out = pd.DataFrame({"coef": fit.params[xs], "se": se, "p": pv}).reindex(xs_all)
+    out["absorbed"] = out.index.isin(absorbed)
+    out["within_sd"] = [np.sqrt(within[x]) for x in xs_all]
+    out["n"] = int(fit.nobs)
+    return out
