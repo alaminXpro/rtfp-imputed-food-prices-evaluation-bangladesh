@@ -1,0 +1,5 @@
+item,n_observed,share_c_ne_y,median_abs_dev_pct,share_c_above_y,median_y_off_local_median_pct_when_c_ne_y,median_y_off_local_median_pct_when_c_eq_y
+lentils,4144,0.0917,6.01,0.389,0.0,0.0
+oil,4717,0.0695,6.35,0.451,1.77,0.0
+rice,3666,0.0837,5.6,0.603,3.32,0.0
+wheat_flour,4777,0.0756,5.33,0.452,0.0,0.0

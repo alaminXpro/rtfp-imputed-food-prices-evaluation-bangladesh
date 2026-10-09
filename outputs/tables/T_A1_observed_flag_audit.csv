@@ -1,0 +1,6 @@
+item,match,neither,value_mismatch,no_hdx_row,hdx_only,rtfp_observed,share_matched,share_hdx_in_rtfp,median_ratio_mismatch,share_aggregate_among_matched
+lentils,4144.0,22036.0,0.0,0.0,0.0,4144.0,1.0,1.0,,0.4980694980694981
+oil,4717.0,21463.0,0.0,0.0,0.0,4717.0,1.0,1.0,,0.5579817680729277
+rice,3666.0,22514.0,0.0,0.0,0.0,3666.0,1.0,1.0,,0.5234588106928533
+wheat_flour,4777.0,21403.0,0.0,0.0,0.0,4777.0,1.0,1.0,,0.5421812853255181
+ALL,17304.0,,,,,17304.0,1.0,,,
