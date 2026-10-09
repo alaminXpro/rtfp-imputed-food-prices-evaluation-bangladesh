@@ -311,6 +311,11 @@ sources") is what allows BBS figures to appear in the paper's tables, with ackno
 archive would rest on that same sentence. The default here is to regenerate such series from the
 scripts. Including them is a choice for the authors.
 
+**Authors' decision (2026-10-09):** the extracted national food CPI and the Table 7n series derived from it
+are published in `data/third_party/bbs/`, on the basis of the printed notice: acknowledged to BBS, not
+covered by the repository's MIT or CC BY 4.0 licences, and marked "no commercial reproduction". The raw
+BBS PDF and Excel files are still not redistributed.
+
 ## 4. Trading Corporation of Bangladesh (TCB), daily price lists
 
 Pages read:

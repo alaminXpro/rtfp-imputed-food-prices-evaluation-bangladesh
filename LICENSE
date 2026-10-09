@@ -17,9 +17,13 @@ CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFT
 IN THE SOFTWARE.
 
 Derived data produced by this code (outputs/tables/) are released under CC BY 4.0. Tables built from BBS or TCB
-sources contain only summary statistics (e.g. correlations, reliabilities); the underlying BBS and TCB series are
-not redistributed and are regenerated locally by the scripts. Short excerpts of published BBS CPI tables and TCB
+sources contain only summary statistics (e.g. correlations, reliabilities). Exception: data/third_party/bbs/ holds
+the BBS national food CPI series and a series derived from it; those files are NOT covered by the MIT or CC BY 4.0
+grants. They are Bangladesh Bureau of Statistics data, published with acknowledgement of the source and not for
+commercial reproduction, under the notice printed in BBS's publications (see data/third_party/bbs/README.md). TCB
+series are not redistributed and are regenerated locally by the scripts. Short excerpts of published BBS CPI tables and TCB
 price bulletins appear in tests/test_bbs.py and tests/test_tcb.py as parser test values, with acknowledgement of
 the source (Bangladesh Bureau of Statistics; Trading Corporation of Bangladesh); they are not covered by the MIT or
 CC BY 4.0 grants. Third-party source data keep their own terms: see data/raw/LICENSES.md (World Bank RTFP: CC BY
-4.0 with World Bank terms; WFP/HDX: CC BY-IGO 3.0; BBS and TCB: no licence stated, download scripts only).
+4.0 with World Bank terms; WFP/HDX: CC BY-IGO 3.0; BBS: no licence stated, printed notice permits use with acknowledgement, no commercial reproduction; TCB: no
+licence stated, download scripts only).

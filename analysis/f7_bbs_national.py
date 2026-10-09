@@ -60,9 +60,13 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
     pd.DataFrame(pv).to_csv(OUT / "T7n_published_vs_survey_national.csv", index=False)
     t.to_csv(OUT / "T7n_bbs_national.csv", index=False)
-    # the monthly series contains BBS-derived values (no licence stated: scripts only), so it stays out of git
-    Path("data/interim").mkdir(parents=True, exist_ok=True)
-    m.to_csv("data/interim/T7n_bbs_national_series.csv", index=False)
+    # BBS-derived files are published under BBS's own terms (acknowledgement, no commercial reproduction),
+    # NOT under this repository's CC BY 4.0 / MIT: see data/third_party/bbs/README.md
+    tp = Path("data/third_party/bbs")
+    tp.mkdir(parents=True, exist_ok=True)
+    bbs[["month", "base", "food_index_national", "food_inflation_yoy_national", "source_file"]].to_csv(
+        tp / "bbs_food_cpi_monthly.csv", index=False)
+    m.to_csv(tp / "T7n_bbs_national_series.csv", index=False)
     pd.set_option("display.width", 200)
     print(t.round(3).to_string(index=False))
 
