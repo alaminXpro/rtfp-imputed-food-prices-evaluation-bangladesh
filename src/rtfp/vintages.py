@@ -17,7 +17,7 @@ import os
 import numpy as np
 import pandas as pd
 
-from rtfp.crosswalk import vintage_of
+from rtfp.crosswalk import MARKET_COLS, build_crosswalk, vintage_of
 from rtfp.panel import build_panel
 
 KEY = ["mkt_uid", "month", "item"]
@@ -26,17 +26,26 @@ STACK_COLS = ["vintage", "mkt_uid", "month", "item", "y", "c", "h", "l", "trust"
 
 
 def build_stack(vintage_dir: str) -> pd.DataFrame:
-    frames = []
+    frames, markets = [], []
     for f in sorted(glob.glob(os.path.join(vintage_dir, "BGD_RTFP_mkt_*", "*.csv")), key=vintage_of):
-        p = build_panel(pd.read_csv(f))
+        raw = pd.read_csv(f)
+        markets.append(raw[MARKET_COLS].drop_duplicates().assign(vintage=vintage_of(f)))
+        p = build_panel(raw)
         p["vintage"] = pd.Timestamp(vintage_of(f))
         frames.append(p[[c for c in STACK_COLS if c in p.columns]])
+    build_crosswalk(pd.concat(markets, ignore_index=True))  # raises if a market name jumps location
     s = pd.concat(frames, ignore_index=True)
     s["mu_pub_all"] = s.groupby(["vintage", "item", "month"]).dlog_pub.transform("mean")
     for c in ["y", "c", "h", "l", "dlog_obs", "dlog_pub", "mu_obs", "mu_pub_all", "dist_obs_km", "gap"]:
         s[c] = s[c].astype("float64")
     s["item"] = s["item"].astype("category")
     return s
+
+
+def latest_rows(stack: pd.DataFrame) -> pd.DataFrame:
+    """Rows of the latest vintage that contains each item (rice is absent from many vintages)."""
+    last_v = stack.groupby("item", observed=True).vintage.transform("max")
+    return stack[stack.vintage == last_v]
 
 
 def build_holdout(stack: pd.DataFrame, max_lag_months: int = 6) -> pd.DataFrame:
@@ -64,7 +73,7 @@ def build_holdout(stack: pd.DataFrame, max_lag_months: int = 6) -> pd.DataFrame:
     obs_before_final = obs_before_final[obs_before_final.obs & (obs_before_final.vintage < obs_before_final.v_final)]
     toggled = obs_before_final[KEY].drop_duplicates().assign(toggle=True)
     h = h.merge(toggled, on=KEY, how="left")
-    latest = s[s.vintage == s.vintage.max()][KEY + ["y", "obs"]].rename(columns={"y": "y_eval", "obs": "obs_latest"})
+    latest = latest_rows(s)[KEY + ["y", "obs"]].rename(columns={"y": "y_eval", "obs": "obs_latest"})
     h = h.merge(latest, on=KEY, how="left")
     confirmed = h.obs_latest.fillna(False).astype(bool)
     h.loc[~confirmed, "y_eval"] = np.nan
@@ -79,7 +88,7 @@ def build_holdout(stack: pd.DataFrame, max_lag_months: int = 6) -> pd.DataFrame:
 def build_change_pairs(holdout: pd.DataFrame, stack: pd.DataFrame) -> pd.DataFrame:
     """Monthly change pairs (t-1, t) for hold-out cells t, both published values from v_final(t).
 
-    Truth side: y at t and t-1 from the LATEST vintage (y_eval); requires t-1 observed there.
+    Truth side: y at t and t-1 from the latest vintage containing the item (y_eval); requires t-1 observed there.
     pair_type: both_imputed if t-1 was imputed in v_final(t), else imputed_t_observed_prev.
     """
     s = stack.copy()
@@ -88,7 +97,9 @@ def build_change_pairs(holdout: pd.DataFrame, stack: pd.DataFrame) -> pd.DataFra
         columns={"month_next": "month", "c": "c_prev", "y": "y_prev", "obs": "obs_prev"})
     h = holdout.merge(prev.rename(columns={"vintage": "v_final", "y_prev": "y_prev_vfinal"}),
                       on=["v_final", "mkt_uid", "item", "month"], how="inner")
-    tv = prev[prev.vintage == stack.vintage.max()][["mkt_uid", "item", "month", "y_prev", "obs_prev"]].rename(
+    last_v = stack.groupby("item", observed=True).vintage.max().rename("last_v").reset_index()
+    prev = prev.merge(last_v, on="item")
+    tv = prev[prev.vintage == prev.last_v][["mkt_uid", "item", "month", "y_prev", "obs_prev"]].rename(
         columns={"obs_prev": "obs_prev_truth", "y_prev": "y_prev_truth"})
     h = h[h.y_eval.notna()].merge(tv, on=["mkt_uid", "item", "month"], how="inner")
     h = h[h.obs_prev_truth.astype(bool) & h.c_prev.notna()]
@@ -99,7 +110,8 @@ def build_change_pairs(holdout: pd.DataFrame, stack: pd.DataFrame) -> pd.DataFra
         mu_v = stack[["vintage", "item", "month", "mu_obs", "mu_pub_all"]].drop_duplicates(["vintage", "item", "month"])
         h = h.merge(mu_v.rename(columns={"vintage": "v_final", "mu_obs": "mu_obs_vfinal",
                                          "mu_pub_all": "mu_pub_vfinal"}), on=["v_final", "item", "month"], how="left")
-        mu_l = mu_v[mu_v.vintage == stack.vintage.max()][["item", "month", "mu_obs"]].rename(
+        mu_v = mu_v.merge(last_v, on="item")
+        mu_l = mu_v[mu_v.vintage == mu_v.last_v][["item", "month", "mu_obs"]].rename(
             columns={"mu_obs": "mu_obs_latest"})
         h = h.merge(mu_l, on=["item", "month"], how="left")
     return h.drop(columns=["obs_prev", "obs_prev_truth"]).reset_index(drop=True)

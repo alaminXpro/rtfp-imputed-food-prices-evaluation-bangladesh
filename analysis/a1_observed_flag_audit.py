@@ -44,17 +44,19 @@ def main():
     # c_ vs y on observed cells: how often, how large, which direction, outlier-like?
     o = a[a.obs].sort_values(["mkt_uid", "item", "month"]).copy()
     o["dev"] = np.log(o.c / o.y)
+    o["differs"] = np.abs(o.c / o.y - 1) > 0.01  # |c/y - 1| > 1%, as stated in the results note
     roll = o.groupby(["mkt_uid", "item"]).y.transform(lambda s: np.log(s).rolling(5, center=True, min_periods=3).median())
     o["y_off_local_median"] = np.abs(np.log(o.y) - roll)
-    diff = o[np.abs(o.dev) > 0.01]
+    diff = o[o.differs]
     b = pd.DataFrame({
         "n_observed": o.groupby("item").size(),
-        "share_c_ne_y": (np.abs(o.dev) > 0.01).groupby(o.item).mean().round(4),
+        "n_c_ne_y": o.differs.groupby(o.item).sum(),
+        "share_c_ne_y": o.differs.groupby(o.item).mean().round(4),
         "median_abs_dev_pct": (100 * diff.dev.abs()).groupby(diff.item).median().round(2),
         "share_c_above_y": (diff.dev > 0).groupby(diff.item).mean().round(3),
         "median_y_off_local_median_pct_when_c_ne_y": (100 * diff.y_off_local_median).groupby(diff.item).median().round(2),
-        "median_y_off_local_median_pct_when_c_eq_y": (100 * o[np.abs(o.dev) <= 0.01].y_off_local_median)
-        .groupby(o[np.abs(o.dev) <= 0.01].item).median().round(2),
+        "median_y_off_local_median_pct_when_c_eq_y": (100 * o[~o.differs].y_off_local_median)
+        .groupby(o[~o.differs].item).median().round(2),
     })
     Path("outputs/tables").mkdir(parents=True, exist_ok=True)
     t.to_csv("outputs/tables/T_A1_observed_flag_audit.csv")

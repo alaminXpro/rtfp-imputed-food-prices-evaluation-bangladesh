@@ -18,7 +18,7 @@
 - Observed side uses `log y` (plain column); imputed side uses `log ĉ` (`c_`). Evaluation truth for a hold-out cell = y in the latest vintage (equals the WFP feed); first-observed value kept for revisions.
 - Local component: each side demeaned by its own vintage's observed-cell month mean; pooled versions reported alongside.
 - **One hold-out definition** with strata toggle > unconfirmed > backfill (>6 months) > forecast > cross-sectional and pair types (methodology M1). Headline = cross-sectional stratum, both-imputed pairs.
-- Rice is absent from 38 vintages: vintage-dependent quantities use only vintages containing the item.
+- Rice is absent from 42 of 83 vintages (and 2024-01-25 has rice survey values but no published rice estimates): vintage-dependent quantities use only vintages containing the item.
 - Every number handed to the co-author comes from a script in `analysis/`.
 - Confirmatory H1–H2 use only releases published after registration (methodology M4).
 

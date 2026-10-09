@@ -125,7 +125,7 @@ def write_note():
 - *toggle*: the survey value was already in an earlier release, then dropped and restored. Not a late arrival.
 - *unconfirmed*: the value that appeared is not in the latest release (and therefore not in the WFP feed, Table A1). Not usable as truth.
 - *backfill*: arrived more than 6 months after the price month. Mostly wheat flour; consistent with the first release holding fewer pre-2023 wheat-flour survey values (2,084) than later full releases (2,548), though the cause is not documented.
-- *forecast*: no market observed for that item-month in the imputing release (real-time nowcast; median lag 1 month).
+- *forecast*: no market observed for that item-month in the imputing release (real-time nowcast: the imputing release came a median of 1 month after the price month).
 - *cross_sectional*: some markets observed that item-month in the imputing release.
 
 **Monthly change pairs** (both published values from the same imputing release; truth from the latest release):

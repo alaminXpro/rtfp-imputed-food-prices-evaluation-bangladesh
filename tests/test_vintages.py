@@ -103,3 +103,30 @@ def test_evaluation_truth_is_the_latest_value():
     h = _h([_row(V[0], "m_a", np.nan, 100.0), _row(V[1], "m_a", 101.0, 101.0), _row(V[2], "m_a", 102.0, 102.0)])
     r = h.loc[("m_a", T, "rice")]
     assert r.y_truth == 101.0 and r.y_eval == 102.0 and r.truth_revised
+
+
+def test_truth_comes_from_latest_vintage_that_contains_the_item():
+    # rice imputed in V0, observed in V1; V2 (overall latest) has no rice rows but has wheat flour.
+    rows = [_row(V[0], "m_a", np.nan, 100.0), _row(V[1], "m_a", 101.0, 101.0),
+            _row(V[2], "m_a", 50.0, 50.0, item="wheat_flour")]
+    h = _h(rows)
+    r = h.loc[("m_a", T, "rice")]
+    assert r.stratum != "unconfirmed" and r.y_eval == 101.0
+
+
+def test_build_stack_refuses_a_market_name_that_jumps_location(tmp_path):
+    from rtfp.vintages import build_stack
+
+    def write(v, lat):
+        d = tmp_path / f"BGD_RTFP_mkt_2007_{v}"
+        d.mkdir()
+        row = {"mkt_name": "X Sadar", "adm1_name": "A", "adm2_name": "B", "lat": lat, "lon": 90.0, "geo_id": "g",
+               "price_date": "2024-12-01", "data_coverage": 1.0, "data_coverage_recent": 1.0}
+        for it in ["rice", "wheat_flour", "oil", "lentils"]:
+            row.update({it: 1.0, f"c_{it}": 1.0, f"o_{it}": 1.0, f"h_{it}": 1.0, f"l_{it}": 1.0, f"trust_{it}": 8})
+        pd.DataFrame([row]).to_csv(d / f"BGD_RTFP_mkt_2007_{v}.csv", index=False)
+
+    write("2025-01-10", 23.0)
+    write("2025-02-10", 24.0)  # ~111 km away
+    with pytest.raises(ValueError, match="X Sadar"):
+        build_stack(str(tmp_path))

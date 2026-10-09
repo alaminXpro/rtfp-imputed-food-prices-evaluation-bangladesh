@@ -21,7 +21,7 @@ def _long(wide: pd.DataFrame) -> pd.DataFrame:
     for it in ITEMS:
         cols = {f"{p}{it}": name for p, name in FIELDS.items() if f"{p}{it}" in wide.columns}
         if f"c_{it}" not in wide.columns:
-            continue  # item absent from this vintage (e.g. rice in 38 vintages)
+            continue  # item absent from this vintage (e.g. rice in 42 of 83 vintages)
         f = wide[[c for c in ID_COLS if c in wide.columns] + list(cols)].rename(columns=cols)
         for name in FIELDS.values():
             if name not in f.columns:

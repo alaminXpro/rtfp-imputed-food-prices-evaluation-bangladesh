@@ -17,11 +17,12 @@
 ## M1. Data and notation
 
 ### Data facts the design must respect (found in review)
-- **geo_id is re-keyed** on 2024-03-18 and 2025-03-31 (names and coordinates unchanged). Markets are resolved through a crosswalk on name + coordinates to a stable internal `mkt_uid` (Task 1.3). geo_id is never used as a key across vintages.
-- **Pipeline toggling:** consecutive vintages alternate between pipelines that keep or drop ~900–1,500 observed cells per item (e.g. 2025-03-24 → 2025-03-31). Such cells are not late arrivals; they form their own stratum.
-- **Rice is absent from 38 of 83 vintages.** Per-vintage item availability is recorded; vintage-dependent quantities use only vintages containing the item.
+- **geo_id is re-keyed** on 2024-03-18 (all), 2025-03-31 (all but 2; coordinates also shift by up to 1.25 km) and 2026-01-13 (3 ids); one geo_id moves from 'Rangpur Municipality Market' to 'Rangpur Sadar'. Market names never change, so markets are resolved by name to a stable `mkt_uid`, with a guard that fails if a name moves more than 3 km (Task 1.3). geo_id is never used as a key across vintages.
+- **Pipeline toggling:** since 2024-11-04, releases come from one of two pipelines in an irregular order (runs of up to 6). 'Reduced' releases hold about a third fewer pre-2023 survey values (lentils ~1,250–1,500 vs 1,976). In 7 releases (mostly 2025-10-27) some survey values also *differ* from the latest release (798 cells; median 7.6%, max 31%). Cells that drop and return form the toggle stratum.
+- **Rice is absent from 42 of 83 vintages**; 2024-01-25 has rice survey values but no published rice estimates. Vintage-dependent quantities, including the evaluation truth, use the latest vintage containing the item.
 - **Stale and aggregated quotes:** 14–33% of consecutive observed changes are exactly zero; 26–29% of observed cells since 2024 carry WFP `priceflag = aggregate`. `priceflag` is carried into the panel.
 - `spatially_interpolated` is 0 on every row of the latest vintage and is not used.
+- **Co-located markets:** 'Rajshahi Division'/'Rajshahi Sadar' and 'Rangpur Municipality Market'/'Rangpur Sadar' share coordinates in 25 vintages, so `dist_obs` can be 0 for an imputed cell. Whether '… Division' series are markets or division averages is an open question (to resolve before Task 2.2).
 - Months with zero or near-zero observed markets exist (e.g. 2025-11, 2026-01, 2026-09/10).
 
 ### Notation
@@ -38,7 +39,7 @@ A cell (mkt_uid, t, k) enters H at its first observed vintage `v_truth` that fol
 1. **Toggle:** the survey value appeared in a vintage before v (releases alternate between 'full' and 'reduced' pipelines that drop and restore values). Not a late arrival; reported separately.
 2. **Unconfirmed:** the value that appeared is not observed in the latest vintage, hence not in the WFP feed. Excluded.
 3. **Backfill:** arrived more than 6 months after the price month (sensitivity 3 and 12). Historical additions; reported separately.
-4. **Forecast:** zero markets observed for item k in month t in v. Real-time nowcast; median lag 1 month.
+4. **Forecast:** zero markets observed for item k in month t in v. Real-time nowcast: the imputing release came a median of 1 month after the price month.
 5. **Cross-sectional:** month t partly observed in v. The model knew μ_t; the clean test of *local* information and the headline stratum.
 
 Clean strata (4–5) hold 5,768 cells, price months 2023-09 to 2026-08 (Table A2). Results therefore describe recent imputations; never-observed cells are mostly 2007–2019 history.
