@@ -53,3 +53,24 @@ def pigeonhole_weights(df: pd.DataFrame, rng, markets, months) -> np.ndarray:
     mk = pd.Series(np.bincount(rng.integers(0, len(markets), len(markets)), minlength=len(markets)), index=markets)
     mo = pd.Series(np.bincount(rng.integers(0, len(months), len(months)), minlength=len(months)), index=months)
     return (df.mkt_uid.map(mk).to_numpy() * df.month.map(mo).to_numpy()).astype(int)
+
+
+def level_stats(c, y) -> dict:
+    """Level accuracy of published estimate c against truth y (percent units)."""
+    c, y = np.asarray(c, float), np.asarray(y, float)
+    ape = np.round(np.abs(c / y - 1), 12)  # round so that exactly 10% is not '> 10%' through float error
+    return {"n": len(c), "mape": 100 * ape.mean(), "median_ape": 100 * np.median(ape),
+            "bias_logpct": 100 * np.mean(np.log(c / y)), "share_err_gt10": float((ape > 0.10).mean())}
+
+
+def level_mz(df: pd.DataFrame, demean: str = "month") -> dict:
+    """Slope of log y on log c; demean='month' removes item x month means from both sides first."""
+    ly, lc = np.log(df.y.to_numpy(float)), np.log(df.c.to_numpy(float))
+    if demean == "month":
+        g = [df["item"].astype(str).to_numpy(), df.month.to_numpy()]
+        ly = ly - pd.Series(ly).groupby(g).transform("mean").to_numpy()
+        lc = lc - pd.Series(lc).groupby(g).transform("mean").to_numpy()
+    elif demean != "none":
+        raise ValueError(demean)
+    lcd, lyd = lc - lc.mean(), ly - ly.mean()
+    return {"slope": (lcd * lyd).sum() / (lcd**2).sum(), "n": len(lc)}

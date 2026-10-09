@@ -52,3 +52,22 @@ def test_pigeonhole_weights_are_product_of_market_and_month_draw_counts():
     # deterministic given the seed
     w2 = pigeonhole_weights(df, np.random.default_rng(3), markets=["a", "b"], months=list(df.month.unique()))
     assert (w == w2).all()
+
+
+def test_level_stats_known_values():
+    from rtfp.metrics import level_stats
+    y = np.array([100.0, 100.0, 100.0, 100.0])
+    c = np.array([110.0, 90.0, 100.0, 100.0])
+    s = level_stats(c, y)
+    assert s["mape"] == pytest.approx(5.0)          # (10+10+0+0)/4 percent
+    assert s["median_ape"] == pytest.approx(5.0)       # median of {10, 10, 0, 0}
+    assert s["share_err_gt10"] == pytest.approx(0.0)  # exactly 10% is not > 10%
+    assert s["bias_logpct"] == pytest.approx(100 * np.mean(np.log(c / y)))
+
+
+def test_level_mz_slope_month_demeaned_is_one_for_perfect_cross_section():
+    from rtfp.metrics import level_mz
+    df = pd.DataFrame({"item": "rice", "month": pd.to_datetime(["2025-01-01"] * 3 + ["2025-02-01"] * 3),
+                       "c": [100, 110, 120, 200, 220, 240.0]})
+    df["y"] = df.c * np.where(df.month == "2025-01-01", 1.0, 1.1)  # month-common error only
+    assert level_mz(df, demean="month")["slope"] == pytest.approx(1.0)
