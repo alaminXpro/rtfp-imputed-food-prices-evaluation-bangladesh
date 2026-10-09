@@ -118,7 +118,7 @@ Inference: two-way (market × month) cluster bootstrap, B = 1,000, with rel resa
 
 ## M4. Registration and inference
 
-- Order: Tasks 1.1–1.3 and 2.1 (noise band and G1) run on existing data, *then* registration (Task 0.3). Registration records the G1 outcome and pre-specifies both branches.
+- Order: Tasks 1.1–1.3 and 2.1 (noise band and G1) run on existing data, *then* registration (Task 2.R). Registration records the G1 outcome and pre-specifies both branches.
 - **Prospective confirmatory hypotheses** (sample: cells first observed in vintages published after registration; cross-sectional and forecast strata; expected N stated in the registration, minimum 6 post-registration months and ≥ 150 cells per item before testing):
   - **H1 (local information):** ρ* < 0.5 at the conservative rel, per item, one-sided, Holm-corrected; both-imputed pairs.
   - **H2 (levels):** level MZ slope within [0.9, 1.1] and |bias| < 1%, per item, TOST with two-way clustered SEs.
