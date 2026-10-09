@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.DS_Store
+data/raw/rtfp_vintages/
+data/raw/hdx_wfp/
+data/raw/bbs/
+data/raw/*/
+data/interim/
+data/external/
+outputs/site_data/
+.superpowers/
+site/node_modules/
+site/.next/
+site/out/
