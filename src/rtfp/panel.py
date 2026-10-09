@@ -16,9 +16,9 @@ ID_COLS = ["mkt_name", "adm1_name", "adm2_name", "lat", "lon", "geo_id", "price_
 FIELDS = {"": "y", "c_": "c", "o_": "o", "h_": "h", "l_": "l", "trust_": "trust"}
 
 
-def _long(wide: pd.DataFrame) -> pd.DataFrame:
+def _long(wide: pd.DataFrame, items=ITEMS) -> pd.DataFrame:
     frames = []
-    for it in ITEMS:
+    for it in items:
         cols = {f"{p}{it}": name for p, name in FIELDS.items() if f"{p}{it}" in wide.columns}
         if f"c_{it}" not in wide.columns:
             continue  # item absent from this vintage (e.g. rice in 42 of 83 vintages)
@@ -69,16 +69,16 @@ def _distance(p: pd.DataFrame) -> pd.DataFrame:
     return pd.concat(out)
 
 
-def build_panel(wide: pd.DataFrame) -> pd.DataFrame:
+def build_panel(wide: pd.DataFrame, items=ITEMS) -> pd.DataFrame:
     """Panel from one vintage's wide CSV contents (one row per market × month)."""
-    p = _changes(_long(wide))
+    p = _changes(_long(wide, items))
     p["gap"] = _gap(p)
     p = p.join(_distance(p))
     return p.drop(columns="mi").reset_index(drop=True)
 
 
-def load_panel(csv_path: str) -> pd.DataFrame:
-    return build_panel(pd.read_csv(csv_path))
+def load_panel(csv_path: str, items=ITEMS) -> pd.DataFrame:
+    return build_panel(pd.read_csv(csv_path), items)
 
 
 def main() -> None:

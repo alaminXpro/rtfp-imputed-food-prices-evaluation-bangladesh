@@ -73,3 +73,13 @@ def test_gap_counts_months_since_last_observation():
     assert np.isnan(p.loc[("m_a", MONTHS[0], "rice")].gap)  # never observed before
     assert p.loc[("m_a", MONTHS[1], "rice")].gap == 0
     assert p.loc[("m_a", MONTHS[3], "rice")].gap == 2
+
+
+def test_build_panel_accepts_another_country_item_list():
+    w = _wide({"A": (23.0, 90.0, {"rice": [(100, 100), (101, 101), (102, 102), (103, 103)]})})
+    w["maize"], w["c_maize"] = 10.0, 10.0
+    for p in ("o_", "h_", "l_"):
+        w[f"{p}maize"] = 10.0
+    w["trust_maize"] = 9
+    p = build_panel(w, items=["maize"])
+    assert set(p["item"]) == {"maize"} and p.obs.all()

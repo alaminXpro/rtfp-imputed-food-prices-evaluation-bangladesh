@@ -25,12 +25,15 @@ STACK_COLS = ["vintage", "mkt_uid", "month", "item", "y", "c", "h", "l", "trust"
               "n_obs_month", "obs", "dlog_obs", "dlog_pub", "mu_obs", "data_coverage", "data_coverage_recent"]
 
 
-def build_stack(vintage_dir: str) -> pd.DataFrame:
+def build_stack(vintage_dir: str, items=None, prefix: str = "BGD") -> pd.DataFrame:
+    from rtfp.panel import ITEMS
+
+    items = ITEMS if items is None else items
     frames, markets = [], []
-    for f in sorted(glob.glob(os.path.join(vintage_dir, "BGD_RTFP_mkt_*", "*.csv")), key=vintage_of):
+    for f in sorted(glob.glob(os.path.join(vintage_dir, f"{prefix}_RTFP_mkt_*", "*.csv")), key=vintage_of):
         raw = pd.read_csv(f)
         markets.append(raw[MARKET_COLS].drop_duplicates().assign(vintage=vintage_of(f)))
-        p = build_panel(raw)
+        p = build_panel(raw, items)
         p["vintage"] = pd.Timestamp(vintage_of(f))
         frames.append(p[[c for c in STACK_COLS if c in p.columns]])
     build_crosswalk(pd.concat(markets, ignore_index=True))  # raises if a market name jumps location
