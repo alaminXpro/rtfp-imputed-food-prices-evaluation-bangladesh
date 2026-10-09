@@ -1,0 +1,6 @@
+stratum,n,lag_final_median,lag_final_p10,lag_final_p90,wait_days_median,price_month_min,price_month_max
+backfill,649,31.0,8.0,140.20000000000005,7.0,2007-10-01,2026-01-01
+cross_sectional,872,2.0,1.0,4.0,7.0,2023-09-01,2026-04-01
+forecast,4896,1.0,0.0,2.0,7.0,2023-12-01,2026-08-01
+toggle,10728,44.0,16.0,168.0,13.0,2007-01-01,2024-10-01
+unconfirmed,1039,26.0,3.0,117.20000000000005,14.0,2008-01-01,2026-02-01

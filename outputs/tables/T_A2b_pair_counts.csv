@@ -1,0 +1,17 @@
+item,stratum,both_imputed,imputed_t_observed_prev
+lentils,backfill,3,7
+lentils,cross_sectional,87,83
+lentils,forecast,271,1034
+lentils,toggle,947,1406
+oil,backfill,2,5
+oil,cross_sectional,83,108
+oil,forecast,302,1137
+oil,toggle,982,1878
+rice,backfill,27,45
+rice,cross_sectional,75,126
+rice,forecast,189,348
+rice,toggle,874,1607
+wheat_flour,backfill,501,30
+wheat_flour,cross_sectional,117,70
+wheat_flour,forecast,287,1048
+wheat_flour,toggle,798,1673

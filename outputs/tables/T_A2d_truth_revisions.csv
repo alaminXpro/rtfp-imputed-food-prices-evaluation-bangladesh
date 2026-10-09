@@ -1,0 +1,17 @@
+item,stratum,n,share_revised
+lentils,backfill,13,0.0
+lentils,cross_sectional,207,0.0338
+lentils,forecast,1405,0.0157
+lentils,toggle,2465,0.0
+oil,backfill,9,0.0
+oil,cross_sectional,211,0.0047
+oil,forecast,1494,0.0261
+oil,toggle,2966,0.0003
+rice,backfill,73,0.0
+rice,cross_sectional,230,0.0304
+rice,forecast,593,0.0337
+rice,toggle,2746,0.0
+wheat_flour,backfill,554,0.0
+wheat_flour,cross_sectional,224,0.0268
+wheat_flour,forecast,1404,0.0142
+wheat_flour,toggle,2551,0.0
