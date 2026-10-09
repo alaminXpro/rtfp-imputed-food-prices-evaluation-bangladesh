@@ -22,7 +22,7 @@
 - **Rice is absent from 42 of 83 vintages**; 2024-01-25 has rice survey values but no published rice estimates. Vintage-dependent quantities, including the evaluation truth, use the latest vintage containing the item.
 - **Stale and aggregated quotes:** 14–33% of consecutive observed changes are exactly zero; 26–29% of observed cells since 2024 carry WFP `priceflag = aggregate`. `priceflag` is carried into the panel.
 - `spatially_interpolated` is 0 on every row of the latest vintage and is not used.
-- **Co-located markets:** 'Rajshahi Division'/'Rajshahi Sadar' and 'Rangpur Municipality Market'/'Rangpur Sadar' share coordinates in 25 vintages, so `dist_obs` can be 0 for an imputed cell. Whether '… Division' series are markets or division averages is an open question (to resolve before Task 2.2).
+- **Co-located markets:** 'Rajshahi Division'/'Rajshahi Sadar' and 'Rangpur Municipality Market'/'Rangpur Sadar' share coordinates in 25 vintages, so `dist_obs` can be 0 for an imputed cell. The six '… Division' series are observed only 2007-01 to 2020-07; too little overlap with district markets to tell whether they are averages. They never supply clean hold-out truth (2023-09+); noise is estimated on non-Division markets from 2020-08 (Division series and 2007– as sensitivity).
 - Months with zero or near-zero observed markets exist (e.g. 2025-11, 2026-01, 2026-09/10).
 
 ### Notation
