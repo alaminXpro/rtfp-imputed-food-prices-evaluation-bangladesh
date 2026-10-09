@@ -1,2 +1,2 @@
-bootstrap_draws,sim_panels_per_item,sim_eval_months,sim_window_start,sim_window_months,data_history_first_month,data_history_months_min,data_history_months_max
-500,50,12,2020-08,75,2007-01,200,235
+bootstrap_draws,sim_panels_per_item,sim_eval_months,sim_window_start,sim_window_months,sim_history_months_min,sim_history_months_max,data_history_first_month,data_history_months_min,data_history_months_max
+500,50,12,2020-08,75,63,74,2007-01,200,235

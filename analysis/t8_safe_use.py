@@ -47,13 +47,14 @@ def main():
                                     "supported (partly mechanical: observed cells enter both)"),
                  "source": "T7n_published_vs_survey_national.csv"})
     n_bias_ci = int(((c2.bias_lo < -2) | (c2.bias_hi > 2)).sum())
+    ci_fail = (["|bias| > 2%"] if n_bias_ci else []) + (["MAPE > 10%"] if (c2.mape_hi > 10).any() else [])
     h2_bias = (c2.bias_logpct.abs() < 1)
     h2_slope = c2.mz_slope_month_demeaned.between(0.9, 1.1)
     rows.append({"use": "Average price level of a market-month (point estimate)",
                  "evidence": f"MAPE {rng(c2.mape, 1)}%, median {rng(c2.median_ape, 1)}%, bias {rng(c2.bias_logpct, 1)}%, cells off >10%: {rng(100 * c2.share_err_gt10, 0)}%; bias 95% CI extends past ±2% in {n_bias_ci} of {len(c2)} cells; MAPE CI upper bound up to {c2.mape_hi.max():.1f}% (T2)",
                  "rule": "MAPE <= 10% and |bias| <= 2% in every item x clean stratum (forecast, cross-sectional; toggle, unconfirmed and backfill excluded as in the analysis plan), point estimates",
                  "verdict": verdict((c2.mape <= 10).all() and (c2.bias_logpct.abs() <= 2).all(),
-                                    "supported for the average level on point estimates (CIs do not rule out |bias| > 2%)"),
+                                    "supported for the average level on point estimates" + (f" (CIs do not rule out {' or '.join(ci_fail)})" if ci_fail else "")),
                  "source": "T2_levels.csv"})
     rows.append({"use": "Cross-market price differences (draft-plan H2 criteria)",
                  "evidence": f"|bias| < 1% in {int(h2_bias.sum())} of {len(c2)} item x stratum cells; month-demeaned calibration slope in [0.9, 1.1] in {int(h2_slope.sum())} of {len(c2)} (range {rng(c2.mz_slope_month_demeaned)}; below 1 = a given imputed difference between markets corresponds on average to a smaller surveyed difference) (T2)",

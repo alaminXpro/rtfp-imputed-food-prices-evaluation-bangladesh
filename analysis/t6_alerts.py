@@ -162,6 +162,8 @@ def main():
     hist_len = ((z.month.dt.year - first.year) * 12 + z.month.dt.month - first.month)
     meta = pd.DataFrame([{"bootstrap_draws": B, "sim_panels_per_item": SIM_PANELS, "sim_eval_months": SIM_EVAL_MONTHS,
                           "sim_window_start": a4["WINDOW_START"][:7], "sim_window_months": int(specs[ITEMS[0]].n_months),
+                          "sim_history_months_min": int(specs[ITEMS[0]].n_months) - SIM_EVAL_MONTHS,
+                          "sim_history_months_max": int(specs[ITEMS[0]].n_months) - 1,
                           "data_history_first_month": str(first.date())[:7], "data_history_months_min": int(hist_len.min()),
                           "data_history_months_max": int(hist_len.max())}])
 
