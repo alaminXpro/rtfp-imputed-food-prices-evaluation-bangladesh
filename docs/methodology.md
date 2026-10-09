@@ -51,7 +51,7 @@ Clean strata (4–5) hold 5,768 cells, price months 2023-09 to 2026-08 (Table A2
 - *observed-t / imputed-(t−1)*: excluded.
 
 ### External sources
-BBS monthly CPI (national/rural/urban, COICOP food; base change 2005-06 → 2021-22 spliced and documented); TCB Dhaka daily min/max (May 2021 →), compared with **Dhaka Sadar** only (the one Dhaka market with substantial observed coverage; rice ends 2024-12); HDX/WFP feed with source and priceflag fields.
+BBS monthly CPI (national/rural/urban, COICOP food; base change 2005-06 → 2021-22: changes computed within one base, no splice); TCB Dhaka daily min/max (May 2021 →), compared with **Dhaka Sadar** only (the one Dhaka market with substantial observed coverage; rice ends 2024-12); HDX/WFP feed with source and priceflag fields.
 
 ## M2. Framework (paper Section 2)
 
@@ -85,12 +85,13 @@ Language: *framework*, *expectations*, *measurement* — no *propositions*, *ide
 4. *Error vs covariates:* |level error| and |ê − e_obs| on gap, dist_obs, trust, vintage age (RTFP's `data_coverage` is one value per release for all markets, so it is not a cell covariate); month FE; two-way clustered SEs. Does the trust score predict external error?
 5. *Revision paths* across vintages containing the item.
 Inference: two-way (market × month) cluster bootstrap, B = 1,000, with rel resampled jointly so ρ*'s CI includes noise-estimate uncertainty. Holm across items.
+- **Implemented (2026-10-09), deviations:** Tables 2, 3 and 9 use B = 500 pigeonhole draws; the ρ* columns of Table 3 carry no CI (rel held fixed); joint resampling of rel is done only in the Gate G1 bootstrap (Table 1c, B = 500) and in Table 5 (B = 1,000). No Holm correction in the exploratory Tables 2–3 and 9 (no hypothesis is tested there). Known gross survey entry errors (e.g. Patuakhali Sadar 2025-03) remain in the evaluation truth of Tables 2–4 and 6; only the noise estimate has a sensitivity variant without it (A_no_patuakhali).
 
 **D2 — Measurement-noise band (Task 2.1, runs before registration; Gate G1).**
 - Model: observed local level `y = ℓ + ν`, with `ℓ` AR(1) (persistence φ, variance V) and ν white noise. Autocovariances of observed local changes:
   - `γ_Δ(1) = −Var(ν) − V(1−φ)²`
   - `γ_Δ(k) = −V(1−φ)²·φ^(k−1)` for k ≥ 2
-- Estimators: `φ = γ_Δ(3)/γ_Δ(2)`; `Var(ν) = −γ_Δ(1) + γ_Δ(2)/φ`. The naive white-noise estimator `Var(ν) = −γ_Δ(1)` ignores mean reversion and overstates Var(ν); both are reported. Derivation in the appendix; verified in the Task 3.1 simulation.
+- Estimators: `φ = γ_Δ(3)/γ_Δ(2)`; `Var(ν) = −γ_Δ(1) + γ_Δ(2)/φ`. The naive white-noise estimator `Var(ν) = −γ_Δ(1)` ignores mean reversion and overstates Var(ν) under this model; both are reported. Derivation in the appendix. *Result (Task 3.1 simulation, A4):* verified under white survey noise (naive above truth, AR(1) below where identified); under stale-quote and averaging noise both estimators understate Var(ν), so the naive estimator is not a guaranteed bound outside the white-noise model.
 - Reliability of observed local changes: `rel = Var(Δℓ)/(Var(Δℓ) + 2·Var(ν))`, with `Var(Δℓ) = 2V(1−φ)`.
 - Staleness-aware variant: estimate on changes conditional on a quote update; stale quotes treated as a separate error component.
 - Dhaka Sadar vs TCB two-source check: supporting sanity check only (≈30–57 months per item), after verifying that TCB is not among WFP's listed sources.
@@ -104,24 +105,29 @@ Inference: two-way (market × month) cluster bootstrap, B = 1,000, with rel resa
 - Benchmark-relative hypothesis: coefficient on `imputed` below `log sqrt(rel)` — the value a noise-removing, signal-preserving imputer would produce under Gaussian e. Below it means more than noise was removed.
 - Event-time plot (−6..+6 months around spell boundaries) with pre-boundary trends shown.
 - Covariate balance of H vs never-observed cells comes from Task 1.3 (Table A3).
+- **Implemented (2026-10-09):** Table 5 / `T5.md`, exploratory. Benchmarks from A_main and A_trim1 reliabilities; bootstrap B = 1,000 re-estimates rel and the coefficient on the same draw. The Gaussian benchmark is fragile: the distribution-shape term log(shape_imp/shape_obs) is as large as the coefficients, so the squared-change specification (no Gaussian assumption) is reported alongside.
 
 **D4 — Consequences (Tasks 4.1–4.2).**
 - *Alerts:* ALPS (WFP 2014) and IPA (FAO) from ĉ vs from y on H cells; recall, precision, κ with CIs. Benchmark: recall/precision a calibrated, noise-removing imputer achieves against noisy survey alerts, from the Task 3.1 simulation calibrated to estimated Var(e), Var(ν) and the empirical seasonal structure. "Local event" = survey alert in a market while < 25% of markets alert that month. Power calculation on expected alert counts precedes any confirmatory use.
+  - *Implemented (2026-10-09):* Table 6 / `T6.md`, exploratory. The "local event" filter (< 25% of markets alerting) was **not** implemented; all survey alerts are evaluated. Benchmarks are base-rate matched: a noise-removing oracle (the benchmark named above) and a value with no local information; the T8 rule uses the latter. Power from bootstrap SEs (Table T6_alerts_power).
 - *Regressor attenuation:* β_MZ from D1 reported as the multiplier on coefficients estimated with imputed local changes; one worked example re-estimated on observed-only cells if a suitable published RTFP regression exists.
-- *National (descriptive):* equal-weight log index of c_ across all markets and items vs (a) the observed-only index, both against BBS food CPI and, where available, the BBS rice sub-index; m/m and 3-month changes; Newey–West / block-bootstrap SEs; splice documented.
-  - *Result (2026-10-09):* BBS food CPI is uncorrelated with both the published and the survey-only four-staple index (basket mismatch), so it cannot validate the national signal; BBS publishes no rice sub-index. The published national index tracks the survey-only index (corr 0.81–0.87), partly mechanically. See `outputs/results_notes/T7n.md`.
+- *National (descriptive):* equal-weight log index of c_ across all markets and items vs (a) the observed-only index, both against BBS food CPI and, where available, the BBS rice sub-index; m/m and 3-month changes; Newey–West / block-bootstrap SEs. *As implemented:* no splice; changes are computed within one CPI base (2005-06 base to 2023-03, 2021-22 base after).
+  - *Result (2026-10-09):* BBS food CPI is essentially uncorrelated with both the published and the survey-only four-staple index, so it cannot validate the national signal; imputation is not the cause (the survey-only index is equally uncorrelated); the basket difference is a plausible but untested explanation; BBS publishes no rice sub-index. The published national index tracks the survey-only index (corr 0.81–0.87), partly mechanically. See `outputs/results_notes/T7n.md`.
 - *Safe-use table:* assembled by script from D1–D4 outputs (Table 8).
 
 **D5 — Calibrated uncertainty (Task 5.1).**
 - Target: log(y/ĉ), i.e. the value the survey will report (latent-price intervals would be wider).
 - Quantile LightGBM at 5/10/50/90/95%; features: gap, dist_obs, trust, market-level observed share up to v_final (computed by us; RTFP's `data_coverage` is release-level), item, month, vintage age, stratum.
 - **Three-way time-blocked split** by first-observed vintage: train ≤ T1, calibrate (T1, T2], test > T2.
-- Conformalized quantile regression (Romano et al. 2019), Mondrian by gap × distance. Weighted conformal (Tibshirani et al. 2019) only within the covariate support of H.
+- Conformalized quantile regression (Romano et al. 2019), Mondrian by gap × distance (*as implemented:* stratum × months since last report, since distance is undefined for forecast cells). Weighted conformal (Tibshirani et al. 2019) only within the covariate support of H.
 - **Support restriction:** intervals released only for cells with gap ≤ max(H), dist_obs ≤ max(H), and markets with ≥ 1 observation; others flagged "no calibrated interval".
 - Metrics: 80/90% coverage (pooled and by month, with dispersion), width, CRPS. Baselines: published [l_, h_] band; fixed width; global Gaussian.
-- **Implemented (2026-10-09):** quantile model is scikit-learn HistGradientBoosting (quantile loss), not LightGBM (system library unavailable). Four-way time split (train 60% | model selection 10% | calibration 10% | test 20%); candidates unconditional quantiles, group-empirical quantiles (stratum × gap), quantile GB; chosen on the selection block: **unconditional**. Static calibration under-covers later releases (70%/85% at 80/90% nominal) because the error distribution drifts, so **online adaptive conformal inference** (Gibbs & Candès 2021, γ = 0.05) is added: 80.7% / 91.5% coverage, median half-width ±6.2% / ±8.9%. Covariates do not sharpen intervals. Results note `T7.md`.
+- **Implemented (2026-10-09):** quantile model is scikit-learn HistGradientBoosting (quantile loss), not LightGBM (system library unavailable). Four-way time split (train 60% | model selection 10% | calibration 10% | test 20%); candidates unconditional quantiles, group-empirical quantiles (stratum × gap), quantile GB; chosen on the selection block: **unconditional**. Static Mondrian calibration under-covers later releases, so **online adaptive conformal inference** (Gibbs & Candès 2021, γ = 0.05, calibration pool growing with revealed survey values) is added; it reaches near-nominal pooled coverage, which ACI guarantees in the long run by construction. A decomposition (static pooled threshold; expanding pool at a fixed level) shows how much of the gain comes from the pooled threshold and the growing pool rather than from drift adaptation. Numbers: `T7.md` (generated). Covariates do not sharpen intervals. Results note `T7.md`.
 
 **D6 — Bounded replication (Task 6.1, gated).** 3–5 per-country RTFP market datasets chosen by criteria stated in the registration (≥ 50 vintages; ≥ 30 markets; plain columns present; not Bangladesh). Repeat Tasks 1.3, 2.1, 2.2 core metrics. Forest plot of ρ* bands. Go only if Bangladesh Phases 1–2 finish on schedule.
+- **Implemented (2026-10-09):** Table 9 / `T9.md`, exploratory; five countries chosen by the rule from the catalogue snapshot. Pipeline changes for other countries: markets whose name moves > 3 km across vintages are dropped (`on_drift="drop"`, listed per country) and excluded before own-release μ is computed; ρ* > 1 is not counted as a success; scale mismatches between RTFP and WFP/HDX are tabulated (T9d). No forest plot yet; ρ* intervals not reported (rel held fixed).
+
+**Task 3.1 simulation (framework check).** *Implemented (2026-10-09):* Table A4 / `A4.md`. Panels calibrated to Bangladesh; four stylized imputers; three survey-noise models. A calibrated conditional mean is ruled out mainly by λ; the naive noise estimator bounds Var(ν) from above only under white noise (see D2).
 
 **Appendix designs.** Replica-imputer masking study; robustness battery (c_-based observed side; division-level μ; 3-month changes; excluding 2007–2019 and camp markets; `inflation_<k>`; earliest vs latest vintage; excluding `priceflag = aggregate`).
 
@@ -129,9 +135,10 @@ Inference: two-way (market × month) cluster bootstrap, B = 1,000, with rel resa
 
 - Order: Tasks 1.1–1.3 and 2.1 (noise band and G1) run on existing data, *then* registration (Task 2.R). Registration records the G1 outcome and pre-specifies both branches.
 - **Prospective confirmatory hypotheses** (sample: cells first observed in vintages published after registration; cross-sectional and forecast strata; expected N stated in the registration, minimum 6 post-registration months and ≥ 150 cells per item before testing):
-  - **H1 (local information):** ρ* < 0.5 at the conservative rel, per item, one-sided, Holm-corrected; both-imputed pairs.
+  - **H1 (local information):** ρ* < 0.5 at the conservative rel, per item, one-sided, Holm-corrected; both-imputed pairs, cross-sectional stratum. If that stratum does not reach the minimum N, H1 is reported as pending (no forecast-stratum substitute).
+  - **H1f (nowcast local information, separate):** the same test on forecast-stratum pairs, reported under its own label.
   - **H2 (levels):** level MZ slope within [0.9, 1.1] and |bias| < 1%, per item, TOST with two-way clustered SEs.
-- **Registered before analysis, not prospective** (existing data, labelled so): H3 (D3 benchmark-relative PPML), H4 (D4 alert agreement vs simulation benchmark; confirmatory only if the power calculation supports it).
+- **Defined on existing data and already computed before registration, so exploratory** (2026-10-09; see `docs/analysis_plan.md` §1): H3 (D3 benchmark-relative PPML, Table 5), H4 (D4 alert agreement vs simulation benchmark, Table 6 with power). Originally intended as registered-before-analysis; that ordering did not hold.
 - **Descriptive:** national index vs BBS.
 - Effect sizes with 95% CIs and N everywhere; no p-value-only claims. All quick-look results disclosed as exploratory.
 

@@ -13,7 +13,7 @@ Inputs (sha256, first 12 hex):
 - `outputs/tables/T2_levels.csv` dd7f109a6985
 - `outputs/tables/T3_local_changes.csv` 3878fea3a8d1
 - `outputs/tables/T4b_error_by_trust.csv` 552f53c45df2
-- `outputs/tables/T7_uncertainty.csv` df7de3f48e21
+- `outputs/tables/T7_uncertainty.csv` 3486a5c6a553
 - `outputs/tables/T7b_coverage_by_month.csv` f85228e5c420
 
 Colour key used throughout: cross-sectional = blue circles, forecast = orange squares, toggle = aqua diamonds (shape repeats the colour, so the figures read in greyscale and under colour-vision deficiency).
@@ -77,7 +77,7 @@ Points outside the plotted range (15; included in every fit):
 | Wheat flour | Forecast | m_tangail_sadar_market | 2024-01 | 0.0 | -19.8 |
 | Wheat flour | Forecast | m_patuakhali_sadar | 2025-03 | 1.4 | -182.6 |
 
-**Caveats.** beta_MZ and r here are not corrected for survey measurement noise (see T1 for the rho* band). The forecast stratum mixes national nowcast error into the local component. OLS slopes are sensitive to the extreme survey changes listed above (compare the wide T3 interval for wheat flour, forecast). Inference: the narrow horizontal spread of points is the variance ratio lambda < 1 of Table 3 made visible; the flat fitted lines are beta_MZ < 1.
+**Caveats.** beta_MZ and r here are not corrected for survey measurement noise (see T1 for the rho* band). The forecast stratum mixes national nowcast error into the local component. OLS slopes are sensitive to the extreme survey changes listed above (compare the wide T3 interval for wheat flour, forecast). Inference: the narrow horizontal spread of points is the variance ratio lambda < 1 of Table 3 made visible; the flat fitted lines are point estimates of beta_MZ below 1, but T3's 95% intervals for beta_MZ are wide and include 1 for some items, so the size of the attenuation is not pinned down.
 
 ## Figure 3 - Revision paths of imputed values before the survey value arrived (Fig3_revision_paths)
 
@@ -177,13 +177,19 @@ Points outside the plotted range (15; included in every fit):
 | Unconditional quantiles + ACI (released) | 80% | 1,129 | 0.81 [0.78, 0.83] | 12.6 |
 | Unconditional quantiles, static | 80% | 1,129 | 0.70 [0.67, 0.73] | 10.0 |
 | Gaussian | 80% | 1,129 | 0.97 [0.96, 0.98] | 24.4 |
+| Group quantiles + static_pooled | 80% | 1,129 | 0.84 [0.82, 0.86] | 13.9 |
+| Group quantiles + expanding_fixed_alpha | 80% | 1,129 | 0.83 [0.81, 0.85] | 13.6 |
 | Group quantiles + ACI | 80% | 1,129 | 0.82 [0.80, 0.84] | 13.3 |
 | Quantile GB, static | 80% | 1,129 | 0.82 [0.79, 0.84] | 17.5 |
+| Quantile GB + expanding_fixed_alpha | 80% | 1,129 | 0.81 [0.79, 0.84] | 17.7 |
 | Quantile GB + ACI | 80% | 1,129 | 0.81 [0.79, 0.83] | 17.7 |
+| Unconditional quantiles + expanding_fixed_alpha | 80% | 1,129 | 0.81 [0.79, 0.83] | 12.8 |
+| Quantile GB + static_pooled | 80% | 1,129 | 0.79 [0.77, 0.82] | 16.7 |
+| Unconditional quantiles + static_pooled | 80% | 1,129 | 0.77 [0.75, 0.80] | 11.6 |
 | Constant width, static | 80% | 1,129 | 0.77 [0.74, 0.79] | 11.6 |
 | Group quantiles, static | 80% | 1,129 | 0.73 [0.70, 0.75] | 10.9 |
 
 **By month (panel c):** 2026-02: 0.89 (n 9); 2026-03: 0.73 (n 150); 2026-04: 0.60 (n 149); 2026-05: 0.49 (n 187); 2026-06: 0.73 (n 181); 2026-07: 0.79 (n 262); 2026-08: 0.82 (n 191).
 
-**Caveats.** Per-month coverage is available in T7b only for the once-calibrated candidate, not for the online-recalibrated interval. Pooled coverage hides month-to-month dispersion; months are not independent test sets. The test block is the last part of the release history only; it holds 1,100 forecast and 29 cross-sectional cells (T7 subsets), so coverage for cross-sectional cells is barely tested.
+**Caveats.** Per-month coverage is available in T7b only for the once-calibrated candidate, not for the online-recalibrated interval. ACI attains near-nominal long-run coverage by construction (Gibbs & Candes 2021), so its pooled coverage is weak evidence of calibration in any month or group. Pooled coverage hides month-to-month dispersion; months are not independent test sets. The test block is the last part of the release history only; it holds 1,100 forecast and 29 cross-sectional cells (T7 subsets), so coverage for cross-sectional cells is barely tested.
 

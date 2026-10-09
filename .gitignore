@@ -7,8 +7,16 @@ data/raw/rtfp_vintages/
 data/raw/hdx_wfp/
 data/raw/bbs/
 data/raw/*/
+# replication: commit metadata snapshots and the hash manifest (World Bank metadata, no licensed data)
+!data/raw/rtfp_other/
+data/raw/rtfp_other/*/
+!data/raw/rtfp_other/_listings/
+!data/raw/rtfp_other/_catalog/
 data/interim/
-data/external/
+# BBS/TCB files: no licence stated, not redistributed; their hash manifests are committed
+data/external/**
+!data/external/*/
+!data/external/*/MANIFEST.csv
 outputs/site_data/
 .superpowers/
 site/node_modules/

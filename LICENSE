@@ -16,6 +16,8 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY
 CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 IN THE SOFTWARE.
 
-Derived data produced by this code (outputs/tables/) are released under CC BY 4.0. Third-party source data keep
+Derived data produced by this code (outputs/tables/) are released under CC BY 4.0, except that no BBS- or
+TCB-derived values are redistributed: tables built from those sources contain only summary statistics (e.g.
+correlations, reliabilities), and the underlying series are regenerated locally by the scripts. Third-party source data keep
 their own terms: see data/raw/LICENSES.md (World Bank RTFP: CC BY 4.0 with World Bank terms; WFP/HDX: CC BY-IGO;
 BBS and TCB: no licence stated, download scripts only).

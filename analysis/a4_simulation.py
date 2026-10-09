@@ -201,6 +201,14 @@ def write_note(t: pd.DataFrame, best: pd.DataFrame, nc: pd.DataFrame, calib: pd.
                        "rel_naive_mean", "corr_true_mean", "corr_over_sqrt_rel_true_mean",
                        "corr_over_sqrt_rel_naive_mean"]], 4)
     tbl_best = _md(best[best.noise == "white"], 2)
+    n_beta_in, n_lam_in = int(cm.beta_mz_in_range.sum()), int(cm.lam_in_range.sum())
+    lam_out = cm[~cm.lam_in_range]
+    ok_all = cm[cm.all_in_range]
+    ok_txt = ", ".join(f"{r.item} {r.mode}" for r in ok_all.itertuples()) or "none"
+    nr = nc.assign(naive=nc.var_nu_naive_mean / nc.var_nu_true, ar1=nc.var_nu_ar1_mean_identified / nc.var_nu_true)
+    nrw, nro = nr[nr.noise == "white"], nr[nr.noise != "white"]
+    emp_n = t3[(t3.stratum == "cross_sectional") & (t3.pair_type == "both_imputed")].n
+    sd_wm = w[w["mode"] == "within_month"].groupby("imputer").beta_mz_sd.mean()
     top_txt = "; ".join(f"{imp} with {nz} survey noise ({int(v)} of {n_cells} item-mode cells)" for (nz, imp), v in top.items())
     note = f"""# A4 — Framework simulation calibrated to Bangladesh (Task 3.1)
 
@@ -208,12 +216,13 @@ def write_note(t: pd.DataFrame, best: pd.DataFrame, nc: pd.DataFrame, calib: pd.
 calibrated to the data; they are not estimates from the data.*
 
 **Claim.** In panels calibrated to the Bangladesh panel (104 markets, Table 1 noise, the empirical observation
-pattern and hold-out size), a calibrated conditional-mean imputer gives a calibration slope β_MZ of
-{_f(cm_wm.beta_mz_mean.mean())} (mean over items of the panel means; within-month demeaning) with
-λ = {_f(cm_wm.lam_mean.mean())}; the empirical within-month β_MZ is {_f(emp.loc['within_month', ('beta_mz', 'min')])} to
-{_f(emp.loc['within_month', ('beta_mz', 'max')])} and λ {_f(emp.loc['within_month', ('lam', 'min')])} to
-{_f(emp.loc['within_month', ('lam', 'max')])} (Table 3). Imputer type(s) whose simulated 95% ranges contain all three
-empirical statistics (corr, β_MZ, λ) in the most item × mode cells: {top_txt}.
+pattern and hold-out size), a calibrated conditional-mean imputer (an oracle that knows the true covariance) does
+not reproduce the empirical pattern, and the statistic that rules it out is λ, not β_MZ. Its simulated 95% range
+contains the empirical β_MZ in {n_beta_in} of {n_cells} item × mode cells (simulated within-month β_MZ is
+{_f(cm_wm.beta_mz_mean.mean())} on average but varies widely across panels), while it contains the empirical λ in only
+{n_lam_in} of {n_cells}: the empirical λ lies above the simulated range in {', '.join(f"{r.item} {r.mode} ({_f(r.lam_emp, 3)} vs {_f(r.lam_lo, 3)}–{_f(r.lam_hi, 3)})" for r in lam_out.itertuples())}.
+The cells where all three statistics (corr, β_MZ, λ) fit the oracle: {ok_txt}. Imputer type(s) whose simulated 95%
+ranges contain all three empirical statistics in the most item × mode cells: {top_txt}.
 
 **Simulated statistics by imputer** (white survey noise; mean over the 4 items of the per-item median across panels;
 'in range' counts are out of 4 items):
@@ -258,20 +267,25 @@ mean).
 - The calibrated conditional mean is an oracle: it knows the true covariance structure. A real imputer can do no
   better in expectation; 'calibrated' here means β_MZ = 1 by construction (within-month).
 - Regional share, persistence and noise are estimated with error; the regional share fixes how much local information
-  neighbours carry and therefore the attainable correlation. Wide empirical CIs (n = 75–117 pairs) mean several
-  imputer types can be 'in range'; the comparison discriminates mainly through β_MZ and λ jointly.
+  neighbours carry and therefore the attainable correlation. Wide empirical CIs (n = {int(emp_n.min())}–{int(emp_n.max())} pairs) mean several
+  imputer types can be 'in range'; for the conditional mean, λ does nearly all the discriminating (Claim).
 - Imputer types are stylized: RTFP's model is not known to us. 'Reproduces' means 'consistent with', not 'is'.
 - The two fit criteria disagree: by joint in-range counts chain_mean ties for best under all three noise variants
   (so the noise model is not discriminated), while by standardized distance idw_seasonal is closest in most cells.
   Some item-mode cells fit no imputer (e.g. lentils own_mu, wheat flour within-month), and several are near-ties.
   Read the comparison as "mean-type imputers with residual chain noise or distance/seasonal fill are consistent
   with the data; a calibrated conditional mean is not", not as identification of one mechanism.
-- Within-month β_MZ varies a lot across single panels (per-panel SD about 0.6–1.0), so small simulation runs are
-  noisy; the 200-panel summaries are the ones to quote.
-- Where identified (20–42% of panels), the AR(1) noise estimator understates Var(ν) by about 22–39%; the naive
-  estimator overstates it. The true reliability lies between the two.
-- `rel_true_pairs_mean` is computed on hold-out pairs and `rel_naive_mean` on the noise sample, so the gap between
-  them overstates the naive estimator's bias by about 0.03–0.05 (the direction holds on matched samples).
+- Within-month β_MZ varies a lot across single panels (per-panel SD, mean over items: {', '.join(f'{k} {_f(v)}' for k, v in sd_wm.items())}),
+  so small simulation runs are noisy; the {int(reps['white'])}-panel summaries are the ones to quote.
+- Noise estimators depend on the noise model. Under white survey noise the naive estimator overstates Var(ν)
+  (ratio to truth {_f(nrw.naive.min())}–{_f(nrw.naive.max())}) and the AR(1) estimator, where identified
+  ({100 * nrw.ar1_identified_share.min():.0f}–{100 * nrw.ar1_identified_share.max():.0f}% of panels), understates it
+  ({_f(nrw.ar1.min())}–{_f(nrw.ar1.max())}), so the true value lies between the two. Under the stale-quote and
+  averaging variants **both** understate it (naive {_f(nro.naive.min())}–{_f(nro.naive.max())}, AR(1)
+  {_f(nro.ar1.min())}–{_f(nro.ar1.max())}), so the naive estimator is not a bound there and is not guaranteed to be
+  conservative for ρ*.
+- `rel_true_pairs_mean` is computed on hold-out pairs and `rel_naive_mean` on the noise sample; their gap mixes
+  estimator bias with sample differences, so compare them only qualitatively.
 
 **Files.** `outputs/tables/T_A4_simulation.csv` (all summaries), `T_A4_simulation_match.csv`,
 `T_A4_simulation_noise_check.csv`, `T_A4_simulation_calibration.csv`.
@@ -280,7 +294,18 @@ mean).
     (NOTES / "A4.md").write_text(note)
 
 
+def note_only():
+    """Rewrite A4.md from the saved tables (no re-simulation)."""
+    t = pd.read_csv(OUT / "T_A4_simulation.csv")
+    nc = pd.read_csv(OUT / "T_A4_simulation_noise_check.csv")
+    reps = t.groupby("noise").n_reps.max().to_dict()
+    write_note(t, pd.read_csv(OUT / "T_A4_simulation_match.csv"), nc,
+               pd.read_csv(OUT / "T_A4_simulation_calibration.csv"), pd.read_csv(OUT / "T3_local_changes.csv"), reps)
+
+
 def main():
+    if sys.argv[1:] == ["note"]:
+        return note_only()
     panel = pd.read_parquet("data/interim/panel_latest.parquet")
     panel["item"] = panel["item"].astype(str)
     t1 = pd.read_csv(OUT / "T1_noise_reliability.csv")

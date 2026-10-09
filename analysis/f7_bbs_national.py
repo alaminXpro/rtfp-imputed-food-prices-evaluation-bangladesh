@@ -28,6 +28,9 @@ def main():
     nat = national_changes(panel)
     nat["period"] = nat.month.dt.to_period("M").astype(str)
     bbs = pd.read_csv("data/external/bbs/bbs_food_cpi_monthly.csv", dtype={"month": str, "base": str})
+    from rtfp.download import as_of_date
+    if as_of_date():  # data cutoff (RTFP_AS_OF): BBS months up to the cutoff month
+        bbs = bbs[bbs.month <= as_of_date()[:7]].reset_index(drop=True)
     bbs["d1"] = within_base_log_change(bbs, 1)
     bbs["d3"] = within_base_log_change(bbs, 3)
     m = nat.merge(bbs[["month", "base", "d1", "d3"]].rename(columns={"month": "period"}), on="period")
@@ -54,7 +57,9 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
     pd.DataFrame(pv).to_csv(OUT / "T7n_published_vs_survey_national.csv", index=False)
     t.to_csv(OUT / "T7n_bbs_national.csv", index=False)
-    m.to_csv(OUT / "T7n_bbs_national_series.csv", index=False)
+    # the monthly series contains BBS-derived values (no licence stated: scripts only), so it stays out of git
+    Path("data/interim").mkdir(parents=True, exist_ok=True)
+    m.to_csv("data/interim/T7n_bbs_national_series.csv", index=False)
     pd.set_option("display.width", 200)
     print(t.round(3).to_string(index=False))
 

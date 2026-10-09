@@ -3,7 +3,7 @@
 Stages (run in this order; `select` must be complete before any country's results exist):
   select  Discover every per-country RTFP market dataset (all-country metadata WLD_2021_RTFP_v02_M plus the
           catalogue search), count market-file vintages, markets in the latest vintage (excluding 'Market
-          Average') and plain survey columns; apply the registered rule; write
+          Average') and plain survey columns; apply the rule pre-specified in the draft analysis plan; write
           outputs/tables/T9_country_selection.csv with all candidates, the selected five and a UTC timestamp.
           Refuses to overwrite an existing selection (use --reselect to override deliberately).
   download  Download every market vintage of each selected country, up to the latest vintage seen at selection
@@ -27,7 +27,7 @@ import numpy as np
 import pandas as pd
 
 from rtfp import replicate as rp
-from rtfp.download import sha256_file
+from rtfp.download import hdx_file, sha256_file
 from rtfp.panel import load_panel
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -39,7 +39,7 @@ MIN_INTERVAL = 1.2  # seconds between request starts
 B = 500  # two-way (market x month) pigeonhole bootstrap draws, as Tables 2-3
 SEED = 20261012
 BGD_VINTAGES = ROOT / "data/raw/rtfp_vintages"
-BGD_HDX = sorted((ROOT / "data/raw/hdx_wfp").glob("wfp_food_prices_bgd_*.csv"))
+BGD_HDX = [hdx_file(ROOT / "data/raw/hdx_wfp")]  # list kept for existing BGD_HDX[-1] uses; respects RTFP_AS_OF
 
 
 def stage_select(reselect: bool = False) -> pd.DataFrame:
@@ -216,7 +216,7 @@ def _ci(est, lo, hi, d=2):
 
 
 def bgd_consistency(t: pd.DataFrame) -> dict:
-    """Does the BGD reference row (same driver) reproduce the registered Tables 2, 3 and 3b?"""
+    """Does the BGD reference row (same driver) reproduce the main-specification Tables 2, 3 and 3b?"""
     b = t[t.iso3 == "BGD"].set_index("item")
     t2 = pd.read_csv(OUT / "T2_levels.csv")
     t2 = t2[t2.estimate == "c_final"].set_index(["item", "stratum"])
@@ -297,9 +297,13 @@ def stage_note() -> None:
     bgd = t[t.iso3 == "BGD"]
     t1c = pd.read_csv(OUT / "T1c_gate_summary.csv")
     n_cs10 = int((ok.pairs_cross_sectional >= 10).sum())
-    cs_pos, cs_excl0 = int((cs.corr_cross_sectional > 0).sum()), int((cs.corr_lo_cross_sectional > 0).sum())
-    excl0_items = ", ".join(f"{a} {b}" for a, b in zip(cs[cs.corr_lo_cross_sectional > 0].iso3, cs[cs.corr_lo_cross_sectional > 0]["item"]))
-    fc_excl0 = int((fc.corr_lo_forecast > 0).sum())
+    cs_pos = int((cs.corr_cross_sectional > 0).sum())
+    pos0 = cs[cs.corr_lo_cross_sectional > 0]
+    neg0 = cs[cs.corr_hi_cross_sectional < 0]
+    cs_excl0 = len(pos0) + len(neg0)
+    excl0_items = (f"{len(pos0)} positive: " + ", ".join(f"{a} {b}" for a, b in zip(pos0.iso3, pos0["item"]))
+                   + (f"; {len(neg0)} negative: " + ", ".join(f"{a} {b}" for a, b in zip(neg0.iso3, neg0["item"])) if len(neg0) else ""))
+    fc_excl0 = int(((fc.corr_lo_forecast > 0) | (fc.corr_hi_forecast < 0)).sum())
     in_rng = lambda r: int(((r >= 0.5) & (r <= 1)).sum())
     over1 = lambda r: int((r > 1).sum())
     rho_cs_A = ok.rho_star_A_naive_cross_sectional.dropna()
@@ -327,7 +331,7 @@ def stage_note() -> None:
 
 **Claim.** On {len(chosen)} other RTFP countries ({len(ok)} country-items), with the Bangladesh pipeline and three disclosed changes (markets whose name moves > 3 km across releases are dropped and listed; the noise sample is all markets over six years because the Division filter does not transfer; the WFP audit series is chosen from the data), results **vary across countries and items rather than replicate uniformly**:
 - Cross-sectional both-imputed local correlation: {q(cs.corr_cross_sectional)} across the {len(cs)} items where it is defined ({n_cs10} items have ≥ 10 pairs; it is undefined when all survey changes are identical). It is positive for {cs_pos} of {len(cs)}, but its 95% interval excludes zero for only {cs_excl0} ({excl0_items}).
-- Noise-corrected ρ*: in [0.5, 1] for {in_rng(rho_cs)} of {len(rho_cs)} items; {over1(rho_cs)} more exceed 1 and are not interpretable as correlations (small update-only subsets with low estimated reliability). With variant A alone: {int((rho_cs_A >= 0.5).sum())} of {len(rho_cs_A)} at or above 0.5.
+- Noise-corrected ρ*: in [0.5, 1] for {in_rng(rho_cs)} of {len(rho_cs)} items; {over1(rho_cs)} more exceed 1 and are not interpretable as correlations (small update-only subsets with low estimated reliability). With variant A alone: in [0.5, 1] for {in_rng(rho_cs_A)} of {len(rho_cs_A)} ({over1(rho_cs_A)} exceed 1).
 - Forecast stratum: {q(fc.corr_forecast)} ({len(fc)} items); no interval excludes zero ({fc_excl0} of {len(fc)}); ρ* in [0.5, 1] for {in_rng(rho_fc)} of {len(rho_fc)} ({over1(rho_fc)} exceed 1).
 - Items whose plain column passed the ≥ 90% audit ({len(passed)}): cross-sectional correlation {q(cs_p.corr_cross_sectional)} ({len(cs_p)} items); ρ* in [0.5, 1] for {in_rng(rho_cs_p)} of {len(rho_cs_p)} ({over1(rho_cs_p)} exceed 1).
 - Persistent survey spikes caught by a same-direction published move: {sp_c} of {sp_tot}{f" ({sp_c / sp_tot:.1%})" if sp_tot else ""}.
@@ -362,7 +366,7 @@ Clean strata only (fc = forecast, cs = cross-sectional). Levels pool both clean 
         note += "\nItems not processed (error recorded in `T9_replication.csv`):\n\n" + _md(errs[["iso3", "item", "status"]]) + "\n"
     if len(bgd):
         note += f"""
-**Bangladesh through the same driver (reference, not a replication).** Same code path, same noise variant A as the other countries (all markets, price months from {bgd.noise_since.iloc[0]}); Table 1's registered variant (non-Division markets from 2020-08) differs, so use T1/T1c for Bangladesh's registered ρ*.
+**Bangladesh through the same driver (reference, not a replication).** Same code path, same noise variant A as the other countries (all markets, price months from {bgd.noise_since.iloc[0]}); Table 1's main variant (non-Division markets from 2020-08) differs, so use T1/T1c for Bangladesh's main-specification ρ*.
 
 {_md(item_table(bgd))}
 """
@@ -370,7 +374,7 @@ Clean strata only (fc = forecast, cs = cross-sectional). Levels pool both clean 
             note += f"""
 Consistency: the reference row reproduces Table 2 MAPE and bias by stratum (max |difference| {bc["max_abs_diff_levels"]:.1e}), Table 3 corr, β_MZ and λ ({bc["n_local_cells"]} item × stratum cells; max |difference| {bc["max_abs_diff_local"]:.1e}; pair counts equal: {"yes" if bc["pair_counts_equal"] else "NO"}) and Table 3b spike counts (equal: {"yes" if bc["spikes_equal"] else "NO"}).
 
-Registered Bangladesh conservative ρ* (Table 1c, cross-sectional): {", ".join(f"{r.item} {r.conservative_rho_star:.3f}" for r in t1c.itertuples(index=False))}.
+Main-specification Bangladesh conservative ρ* (Table 1c, cross-sectional): {", ".join(f"{r.item} {r.conservative_rho_star:.3f}" for r in t1c.itertuples(index=False))}.
 """
     aud = au[au.iso3 != "BGD"]
     note += f"""

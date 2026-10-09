@@ -26,6 +26,9 @@ def main():
     w = panel[(panel.mkt_name == "Dhaka Sadar") & panel.obs][["item", "month", "y"]].copy()
     w["period"] = w.month.dt.to_period("M").astype(str)
     tcb = pd.read_csv("data/external/tcb/tcb_monthly.csv", dtype={"variant": str}, keep_default_na=False)
+    from rtfp.download import as_of_date
+    if as_of_date():  # data cutoff (RTFP_AS_OF): TCB months up to the cutoff month
+        tcb = tcb[tcb.month <= as_of_date()[:7]]
     rows = []
     for item, variants in MAP.items():
         for (ten, var) in variants:

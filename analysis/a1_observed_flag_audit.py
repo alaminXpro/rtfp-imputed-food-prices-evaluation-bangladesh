@@ -18,7 +18,9 @@ GATE = 0.90
 
 def main():
     panel = pd.read_parquet("data/interim/panel_latest.parquet")
-    hdx_path = sorted(glob.glob("data/raw/hdx_wfp/wfp_food_prices_bgd_*.csv"))[-1]
+    from rtfp.download import hdx_file
+
+    hdx_path = str(hdx_file("data/raw/hdx_wfp"))  # respects RTFP_AS_OF
     hdx = pd.read_csv(hdx_path)
     mm = match_markets(panel[["mkt_uid", "mkt_name", "lat", "lon"]],
                        hdx[["market", "market_id", "latitude", "longitude"]])

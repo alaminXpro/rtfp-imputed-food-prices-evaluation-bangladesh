@@ -29,7 +29,11 @@ def build_stack(vintage_dir: str, items=None, prefix: str = "BGD", on_drift: str
     from rtfp.panel import ITEMS
 
     items = ITEMS if items is None else items
-    files = sorted(glob.glob(os.path.join(vintage_dir, f"{prefix}_RTFP_mkt_*", "*.csv")), key=vintage_of)
+    from rtfp.download import as_of_date
+
+    cutoff = as_of_date()  # RTFP_AS_OF: ignore releases after the data cutoff (reproducibility)
+    files = sorted((f for f in glob.glob(os.path.join(vintage_dir, f"{prefix}_RTFP_mkt_*", "*.csv"))
+                    if cutoff is None or vintage_of(f) <= cutoff), key=vintage_of)
     # pass 1: market identity across releases (cheap: market columns only). Raises if a name jumps location
     # (on_drift='raise'), or lists such markets to drop (on_drift='drop').
     markets = [pd.read_csv(f, usecols=MARKET_COLS).drop_duplicates().assign(vintage=vintage_of(f)) for f in files]

@@ -118,6 +118,22 @@ def main():
     for cov, (alo, ahi) in {0.80: (0.10, 0.90), 0.90: (0.05, 0.95)}.items():
         for name, Q in cands.items():
             sc_all = cqr_scores(h.r, Q[alo], Q[ahi])
+            # decomposition rows: static pooled threshold (no Mondrian groups) and expanding pool at fixed alpha
+            th_static = conformal_quantile(sc_all[ca.to_numpy()], 1 - cov)
+            ins = sc_all[te.to_numpy()] <= th_static
+            res.append({"nominal": cov, "method": f"{name}+static_pooled", "selected": name == chosen, "subset": "all",
+                        "n_test": int(te.sum()), "coverage": float(ins.mean()),
+                        "mean_width_logpts": float(np.mean(100 * (Q[ahi].to_numpy()[te.to_numpy()] - Q[alo].to_numpy()[te.to_numpy()] + 2 * th_static)))})
+            pool_fx, cov_fx, wid_fx = list(sc_all[ca.to_numpy()]), [], []
+            for vt in rel_order:
+                mk = (te & (h.v_truth == vt)).to_numpy()
+                thf = conformal_quantile(np.asarray(pool_fx), 1 - cov)
+                cov_fx.extend((sc_all[mk] <= thf).tolist())
+                wid_fx.extend((100 * (Q[ahi].to_numpy()[mk] - Q[alo].to_numpy()[mk] + 2 * thf)).tolist())
+                pool_fx.extend(sc_all[mk].tolist())
+            res.append({"nominal": cov, "method": f"{name}+expanding_fixed_alpha", "selected": name == chosen,
+                        "subset": "all", "n_test": len(cov_fx), "coverage": float(np.mean(cov_fx)),
+                        "mean_width_logpts": float(np.mean(wid_fx))})
             pool, alpha = list(sc_all[ca.to_numpy()]), 1 - cov
             covered, widths, months_cov = [], [], []
             for vt in rel_order:

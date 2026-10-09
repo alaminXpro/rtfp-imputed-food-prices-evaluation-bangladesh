@@ -13,7 +13,9 @@ pytestmark = pytest.mark.skipif(not os.path.exists(PANEL), reason="panel not bui
 
 def test_plain_columns_equal_hdx_retail_values_one_to_one():
     p = pd.read_parquet(PANEL)
-    h = pd.read_csv(sorted(glob.glob("data/raw/hdx_wfp/wfp_food_prices_bgd_*.csv"))[-1])
+    from rtfp.download import hdx_file
+
+    h = pd.read_csv(hdx_file("data/raw/hdx_wfp"))
     a = audit_cells(p, h, match_markets(p, h))
     obs = a[a.obs]
     assert (obs.status == "match").mean() >= 0.90  # registered gate

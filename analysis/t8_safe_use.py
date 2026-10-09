@@ -43,31 +43,39 @@ def main():
                  "verdict": verdict((nat.corr_pub_vs_obs >= 0.8).all() and nat.slope_obs_on_pub.between(0.8, 1.2).all(),
                                     "supported (partly mechanical: observed cells enter both)"),
                  "source": "T7n_published_vs_survey_national.csv"})
-    rows.append({"use": "Price level of a market-month (point estimate)",
+    h2_bias = (c2.bias_logpct.abs() < 1)
+    h2_slope = c2.mz_slope_month_demeaned.between(0.9, 1.1)
+    rows.append({"use": "Average price level of a market-month (point estimate)",
                  "evidence": f"MAPE {rng(c2.mape, 1)}%, median {rng(c2.median_ape, 1)}%, bias {rng(c2.bias_logpct, 1)}%, cells off >10%: {rng(100 * c2.share_err_gt10, 0)}% (T2)",
                  "rule": "MAPE <= 10% and |bias| <= 2% in every item x stratum",
                  "verdict": verdict((c2.mape <= 10).all() and (c2.bias_logpct.abs() <= 2).all(),
-                                    "supported, with stated uncertainty (use calibrated intervals)"),
+                                    "supported for the average level, with stated uncertainty"),
+                 "source": "T2_levels.csv"})
+    rows.append({"use": "Cross-market price differences (draft-plan H2 criteria)",
+                 "evidence": f"|bias| < 1% in {int(h2_bias.sum())} of {len(c2)} item x stratum cells; month-demeaned calibration slope in [0.9, 1.1] in {int(h2_slope.sum())} of {len(c2)} (range {rng(c2.mz_slope_month_demeaned)}; below 1 = imputed differences between markets too large) (T2)",
+                 "rule": "H2: |bias| < 1% and slope in [0.9, 1.1] in every item x stratum",
+                 "verdict": verdict((h2_bias & h2_slope).all(), no=f"not supported (slope below 0.9, i.e. imputed cross-market differences overstated, in {int((c2.mz_slope_month_demeaned < 0.9).sum())} of {len(c2)})"),
                  "source": "T2_levels.csv"})
     rows.append({"use": "Published high/low band as an uncertainty range",
                  "evidence": f"later survey value inside the band in {100 * band.coverage:.0f}% of test cells (T7)",
                  "rule": "coverage >= 80%", "verdict": verdict(band.coverage >= 0.8), "source": "T7_uncertainty.csv"})
     rows.append({"use": "Market-specific month-to-month changes",
-                 "evidence": f"corr {rng(h3[h3['mode'] == 'own_mu']['corr'])} (own-release mean removed), {rng(h3[h3['mode'] == 'within_month']['corr'])} (within month); most 95% CIs include 0 (T3)",
+                 "evidence": f"corr {rng(h3[h3['mode'] == 'own_mu']['corr'])} (own-release mean removed), {rng(h3[h3['mode'] == 'within_month']['corr'])} (within month); 95% CI includes 0 in {int(((h3.corr_lo <= 0) & (h3.corr_hi >= 0)).sum())} of {len(h3)} item x definition rows (T3)",
                  "rule": "corr >= 0.5 with CI above 0 for >= 3 of 4 items (own-release mean)",
                  "verdict": verdict(((h3[h3["mode"] == "own_mu"]["corr"] >= 0.5) & (h3[h3["mode"] == "own_mu"].corr_lo > 0)).sum() >= 3),
                  "source": "T3_local_changes.csv"})
     rows.append({"use": "Detecting local price spikes (>10%, persistent)",
                  "evidence": f"{int(sp.caught)} of {int(sp.spikes)} survey spikes ({100 * sp.share_caught:.0f}%) shown by a same-direction published move >= 5% (T3b)",
                  "rule": "share caught >= 50%", "verdict": verdict(sp.share_caught >= 0.5), "source": "T3b_spikes.csv"})
-    bm = h3[h3["mode"] == "own_mu"].beta_mz
+    hb = h3[h3["mode"] == "own_mu"]
+    bm = hb.beta_mz
     rows.append({"use": "Imputed local changes as a regressor",
-                 "evidence": f"calibration slope (beta_MZ) {rng(bm)}: coefficients are multiplied by roughly this factor (T3)",
+                 "evidence": f"calibration slope (beta_MZ) {rng(bm)}; 95% CIs {', '.join(f'{r.item} [{r.beta_mz_lo:.2f}, {r.beta_mz_hi:.2f}]' for r in hb.itertuples())}: include 1 for {int(((hb.beta_mz_lo <= 1) & (hb.beta_mz_hi >= 1)).sum())} of 4 items and 0 for {int(((hb.beta_mz_lo <= 0) & (hb.beta_mz_hi >= 0)).sum())} of 4, so the attenuation factor is not pinned down (T3)",
                  "rule": "beta_MZ within 0.8-1.2 for >= 3 of 4 items",
-                 "verdict": verdict(bm.between(0.8, 1.2).sum() >= 3, no="not supported without correction"),
+                 "verdict": verdict(bm.between(0.8, 1.2).sum() >= 3, no="not shown to be valid (no reliable correction factor)"),
                  "source": "T3_local_changes.csv"})
     rows.append({"use": "Trust score as a guide to cell reliability",
-                 "evidence": f"univariate {tr.coef:.2f} pp error per trust point (p = {tr.p:.3f}); almost all clean cells have trust 10 (T4)",
+                 "evidence": f"univariate {tr.coef:.2f} pp error per trust point (p = {tr.p:.3f}); {100 * (1 - share_low_trust):.0f}% of clean cells have trust 10 (T4)",
                  "rule": "p < 0.05 and >= 20% of clean cells below trust 10",
                  "verdict": verdict(tr.p < 0.05 and share_low_trust >= 0.2, no="limited"),
                  "source": "T4_error_covariates.csv"})
@@ -78,16 +86,19 @@ def main():
                  "source": "T_A3_covariate_balance.csv"})
     if (T / "T6_alerts.csv").exists():
         e6 = pd.read_csv(T / "T6_alerts.csv")
+        z6 = pd.read_csv(T / "T6_alerts_zscores.csv")
+        alps_rate = (z6[z6.indicator == "alps"].z_survey >= 1).mean()
         b6 = pd.read_csv(T / "T6_alerts_benchmark_matched.csv")
         ipa = e6[(e6["item"] == "ALL") & e6.indicator.str.startswith("ipa") & (e6.level == "alert")].set_index("indicator")
         com = b6[(b6.benchmark == "common_only") & (b6.level == "alert")].set_index("indicator").recall_matched
+        orc = b6[(b6.benchmark == "oracle_noise_removed") & (b6.level == "alert")].set_index("indicator").recall_matched
         gain = (ipa.recall - com.reindex(ipa.index))
-        rows.append({"use": "Local early-warning alerts (FAO IPA)",
-                     "evidence": f"IPA alert recall {rng(ipa.recall)} vs {rng(com.reindex(ipa.index))} for a simulated value with no local information, base rates matched (T6); ALPS uninformative in this period",
+        rows.append({"use": "Early-warning alerts (FAO IPA; all alerts, D4 local-event filter not applied)",
+                     "evidence": f"IPA alert recall {rng(ipa.recall)} vs {rng(com.reindex(ipa.index))} for a simulated value with no local information and {rng(orc.reindex(ipa.index))} for one that removes noise but keeps local signal, base rates matched (T6); ALPS not informative here: {100 * alps_rate:.0f}% of clean cells are 'Alert or Crisis' on survey values",
                      "rule": "recall exceeds the no-local-information benchmark by >= 0.10 for both IPA variants",
                      "verdict": verdict((gain >= 0.10).all()), "source": "T6_alerts.csv, T6_alerts_benchmark.csv"})
     else:
-        rows.append({"use": "Local early-warning alerts (FAO IPA)", "evidence": "", "rule": "", "verdict": "pending",
+        rows.append({"use": "Early-warning alerts (FAO IPA)", "evidence": "", "rule": "", "verdict": "pending",
                      "source": "T6 (not yet produced)"})
     t = pd.DataFrame(rows)
     t.to_csv(T / "T8_safe_use.csv", index=False)

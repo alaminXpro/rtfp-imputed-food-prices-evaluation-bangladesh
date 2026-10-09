@@ -178,3 +178,22 @@ def test_dropped_market_does_not_enter_month_means(tmp_path):
     dec = s[(s.month == "2024-12-01") & (s["item"] == "rice")]
     assert np.allclose(dec.mu_obs, np.log(1.1))  # only the stayer's change, not the jumper's log(2)
     assert (dec.n_obs_month == 1).all()
+
+
+def test_build_stack_ignores_vintages_after_as_of(tmp_path, monkeypatch):
+    from rtfp.vintages import build_stack
+
+    def write(v):
+        d = tmp_path / f"BGD_RTFP_mkt_2007_{v}"
+        d.mkdir()
+        r = {"mkt_name": "S", "adm1_name": "A", "adm2_name": "B", "lat": 22.0, "lon": 90.0, "geo_id": "g",
+             "price_date": "2024-12-01", "data_coverage": 1.0, "data_coverage_recent": 1.0}
+        for it in ["rice", "wheat_flour", "oil", "lentils"]:
+            r.update({it: 1.0, f"c_{it}": 1.0, f"o_{it}": 1.0, f"h_{it}": 1.0, f"l_{it}": 1.0, f"trust_{it}": 8})
+        pd.DataFrame([r]).to_csv(d / f"BGD_RTFP_mkt_2007_{v}.csv", index=False)
+
+    for v in ["2025-01-10", "2025-02-10", "2025-03-10"]:
+        write(v)
+    monkeypatch.setenv("RTFP_AS_OF", "2025-02-10")
+    s = build_stack(str(tmp_path))
+    assert s.vintage.max() == pd.Timestamp("2025-02-10") and s.vintage.nunique() == 2

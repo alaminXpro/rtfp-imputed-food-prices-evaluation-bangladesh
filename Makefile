@@ -1,6 +1,9 @@
 # Rebuild every table, note and figure from data/raw/ (after `make data`).
 .PHONY: data panel stack all test external replication
 # single-threaded BLAS, low priority: keeps a laptop cool (see README)
+# data cutoff: outputs are reproduced as of this RTFP release date, even after newer releases appear
+export RTFP_AS_OF ?= 2026-10-05
+
 PY := VECLIB_MAXIMUM_THREADS=1 OMP_NUM_THREADS=1 nice -n 5 .venv/bin/python -I
 
 data:

@@ -1,4 +1,4 @@
-"""Table 5: within-market comparison on switching markets (Task 2.4, methodology D3; registered as H3).
+"""Table 5: within-market comparison on switching markets (Task 2.4, methodology D3; H3 in the draft analysis plan).
 
 Sample (latest release, data/interim/panel_latest.parquet): market x month x item cells from 2020-01 in markets
 whose name does not end in ' Division'. Cell types by the observation status of t and t-1:
@@ -11,8 +11,9 @@ written to T5_switchers_sample.csv.
 Model, per item: PPML of 100|e| on imputed + market FE + month FE (= market x item and month x item FE);
 SEs clustered by market and two-way by market and month (Cameron-Gelbach-Miller; rtfp.ppml, tested).
 Benchmark (D3): a noise-removing, signal-preserving imputer gives coefficient log sqrt(rel) under Gaussian e;
-rel from Table 1 (T1_noise_reliability.csv): A_main rel_naive (lowest credible rel, so the most demanding
-benchmark for 'more than noise removed') and A_trim1 rel_naive. H3: coefficient below the benchmark;
+rel from Table 1 (T1_noise_reliability.csv): A_main rel_naive (the lower of the two, so the more demanding
+benchmark for 'more than noise removed'; the naive estimator overstates noise only under white survey noise, A4) and
+A_trim1 rel_naive. H3: coefficient below the benchmark;
 one-sided test with the larger of the two SEs; Holm across the four items. A two-way pigeonhole bootstrap
 re-estimates rel and the coefficient on the same draw, so the comparison carries the noise-estimate uncertainty.
 Event time: spells of the same status; months -6..+6 around each observed<->imputed boundary, bounded by the
@@ -313,6 +314,27 @@ def registration_status():
     return f"Registered analysis H3 (analysis plan registered {m.group(1)}); existing data, not prospective."
 
 
+def reversal_sentence(per, tab):
+    """Explain items whose raw means run against the FE-adjusted coefficient (computed, not hand-typed)."""
+    rev = [it for it in ITEMS if (per.loc[it, "mean_abs_e_imp_pct"] > per.loc[it, "mean_abs_e_obs_pct"]) != (per.loc[it, "coef"] > 0)]
+    if not rev:
+        return ""
+    m10 = tab[tab.spec == "mu_min10"].set_index("item")
+    parts = []
+    for it in rev:
+        txt = (f"For {it} the raw means run the other way from the coefficient ({f(per.loc[it, 'coef'])}): they compare "
+               f"different months, while the coefficient compares cells within market × item and month × item.")
+        if it in m10.index:
+            txt += (f" Dropping item-months whose μ rests on fewer than {MIN_OBS_CHANGES} observed changes (`mu_min10`) "
+                    f"gives raw means {f(m10.loc[it, 'mean_abs_e_obs_pct'], 2)} / {f(m10.loc[it, 'mean_abs_e_imp_pct'], 2)} "
+                    f"and coefficient {f(m10.loc[it, 'coef'])}, "
+                    + ("so the reversal comes from thinly observed months whose noisy μ inflates imputed cells' |e| "
+                       "(see 'Noisy μ' below)." if m10.loc[it, "mean_abs_e_imp_pct"] < m10.loc[it, "mean_abs_e_obs_pct"]
+                       else "so the reversal is not explained by thinly observed months."))
+        parts.append(txt)
+    return " " + " ".join(parts)
+
+
 def write_note(vintage, sample, rel, tab, bsum, means, coefs, tests, cut_imp, B, facts):
     share_few = facts["share_few"]
     single = ", ".join(f"{r.item} {r.month:%Y-%m}" for r in facts["single"].itertuples())
@@ -337,8 +359,9 @@ def write_note(vintage, sample, rel, tab, bsum, means, coefs, tests, cut_imp, B,
           + f": PPML coefficients on `imputed` range from {f(lo)} to {f(hi)} across the "
           f"four items (imputed/observed ratio of mean |e| {f(np.exp(lo))} to {f(np.exp(hi))}).", "",
           f"Whether this is more than noise removal depends on the survey-noise estimate. Against the A_main "
-          f"benchmark (naive white-noise estimator, which overstates noise (methodology D2), so the most demanding "
-          f"test of 'more than noise removed') the coefficient "
+          f"benchmark (naive white-noise estimator; the lower of the two reliabilities, so the more demanding "
+          f"test of 'more than noise removed'; it overstates noise under white survey noise but not under stale-quote "
+          f"noise, Table A4) the coefficient "
           f"is below the benchmark in {n_pt['A_main']} of 4 items at the point estimate and significantly below "
           f"(one-sided, Holm, 5%) in {n_sig['A_main']} of 4. Against A_trim1 (rel with the 1% largest changes "
           f"trimmed) it is below in {n_pt['A_trim1']} of 4 at the point estimate and significantly below in "
@@ -346,6 +369,15 @@ def write_note(vintage, sample, rel, tab, bsum, means, coefs, tests, cut_imp, B,
           f"below in {int(mt.below_sig_A_trim1.sum())} of 4. With the c_-based observed side and its own matched "
           f"rel, significantly below in {int(cb.below_sig_A_main_c.sum())} of 4 (A_main_c) and "
           f"{int(cb.below_sig_A_trim1_c.sum())} of 4 (A_trim1_c).", ""]
+    sq = tab[(tab.spec == "squared") & tab["item"].isin(ITEMS)]
+    if len(sq):
+        L += [f"**The squared-change version needs no Gaussian assumption and gets equal weight.** With outcome e² "
+              f"and benchmark log rel, the coefficient is below the A_main benchmark in "
+              f"{int(sq.below_point_A_main.astype(bool).sum())} of 4 items at the point estimate (significantly in "
+              f"{int(sq.below_sig_A_main.astype(bool).sum())}) and below A_trim1 in "
+              f"{int(sq.below_point_A_trim1.astype(bool).sum())} of 4 (significantly in "
+              f"{int(sq.below_sig_A_trim1.astype(bool).sum())}). The |e| verdict counts above depend on a Gaussian shape "
+              f"that the data reject (see the 'Gaussian benchmark' caveat), so the two outcomes are reported side by side.", ""]
     sens = tab[tab["item"].isin(ITEMS) & (tab.spec != "main")]
     rng_txt = []
     for bn in BENCH:
@@ -362,12 +394,7 @@ def write_note(vintage, sample, rel, tab, bsum, means, coefs, tests, cut_imp, B,
               f"{nb['A_main']} of 4 for A_main and {nb['A_trim1']} of 4 for A_trim1; for the item average the share of "
               f"draws below the benchmark is {f(bmain.loc['A_main', 'share_diff_below_0'])} (A_main) and "
               f"{f(bmain.loc['A_trim1', 'share_diff_below_0'])} (A_trim1). "
-              + ("The uncertainty of the noise estimate, not of the coefficient, dominates in every item "
-                 if bool((bi[bi.benchmark == 'A_trim1'].boot_sd_diff_finite > bi[bi.benchmark == 'A_trim1'].boot_sd_coef).all())
-                 else "Compare the spread with and without the noise estimate ")
-              + f"(bootstrap SD of coef − bench vs of coef, A_trim1: " + ", ".join(
-                  f"{r.item} {f(r.boot_sd_diff_finite)} vs {f(r.boot_sd_coef)}" for r in bi[bi.benchmark == 'A_trim1'].itertuples())
-              + ").", ""]
+              + _bench_sd_sentence(), ""]
     L += ["*Reading (inference):* a coefficient below the benchmark means imputed local changes are less dispersed "
           "than the true local changes would be once survey noise is removed, i.e. more than noise was removed. "
           "The verdict is therefore stated for each noise estimate, not as one answer.", ""]
@@ -391,7 +418,8 @@ def write_note(vintage, sample, rel, tab, bsum, means, coefs, tests, cut_imp, B,
           "p: one-sided test of coefficient < benchmark using the larger of the market and two-way SEs, Holm across "
           "the four items; the benchmark is treated as known (the bootstrap below relaxes this). Raw mean |e| (%), "
           "observed / imputed cells: " + "; ".join(
-              f"{it} {f(per.loc[it, 'mean_abs_e_obs_pct'], 2)} / {f(per.loc[it, 'mean_abs_e_imp_pct'], 2)}" for it in ITEMS) + ".", ""]
+              f"{it} {f(per.loc[it, 'mean_abs_e_obs_pct'], 2)} / {f(per.loc[it, 'mean_abs_e_imp_pct'], 2)}" for it in ITEMS) + "."
+          + reversal_sentence(per, tab), ""]
     # bootstrap
     if len(bsum):
         bs = bsum.copy()
@@ -523,6 +551,20 @@ def write_note(vintage, sample, rel, tab, bsum, means, coefs, tests, cut_imp, B,
 
 
 # --- main --------------------------------------------------------------------------------------------------------
+
+def _bench_sd_sentence() -> str:
+    """Which items have more benchmark (noise-estimate) uncertainty than coefficient uncertainty, from the draws."""
+    d = pd.read_csv(OUT / "T5_switchers_bootstrap_draws.csv")
+    out = []
+    for bn in BENCH:
+        bench = (d.coef - d[f"diff_{bn}"]).replace([np.inf, -np.inf], np.nan)
+        g = d.assign(bench=bench).groupby("item").agg(sd_bench=("bench", "std"), sd_coef=("coef", "std"))
+        g = g.loc[[i for i in ITEMS if i in g.index]]
+        dom = [i for i, r in g.iterrows() if r.sd_bench > r.sd_coef]
+        out.append(f"{bn}: benchmark SD exceeds coefficient SD for {', '.join(dom) if dom else 'no item'} ("
+                   + ", ".join(f"{i} {r.sd_bench:.3f} vs {r.sd_coef:.3f}" for i, r in g.iterrows()) + ")")
+    return "Bootstrap SD of the benchmark itself vs of the coefficient — " + "; ".join(out) + "."
+
 
 def main():
     ap = argparse.ArgumentParser()

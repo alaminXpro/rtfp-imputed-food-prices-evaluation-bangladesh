@@ -38,9 +38,22 @@ def sha256_file(path: Path) -> str:
     return h.hexdigest()
 
 
-def latest_rtfp_csv(vintage_dir: Path) -> Path:
-    """Return the CSV of the newest vintage, ordered by the date in the file name."""
-    csvs = list(Path(vintage_dir).glob("BGD_RTFP_mkt_*/*.csv"))
+def as_of_date():
+    """Data cutoff (YYYY-MM-DD) from the RTFP_AS_OF environment variable, or None for 'newest available'.
+
+    The Makefile sets RTFP_AS_OF so a rerun reproduces the committed outputs even after new releases appear.
+    """
+    import os
+
+    v = os.environ.get("RTFP_AS_OF", "").strip()
+    return v or None
+
+
+def latest_rtfp_csv(vintage_dir: Path, as_of=None) -> Path:
+    """Return the CSV of the newest vintage (on or before `as_of` if given), ordered by the date in the name."""
+    as_of = as_of if as_of is not None else as_of_date()
+    csvs = [p for p in Path(vintage_dir).glob("BGD_RTFP_mkt_*/*.csv")
+            if as_of is None or VINTAGE_RE.search(p.name).group(1) <= as_of]
     if not csvs:
         raise FileNotFoundError(f"no RTFP vintages under {vintage_dir}")
     return max(csvs, key=lambda p: VINTAGE_RE.search(p.name).group(1))
@@ -114,3 +127,13 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+def hdx_file(hdx_dir: Path, as_of=None) -> Path:
+    """Newest WFP/HDX Bangladesh file dated on or before `as_of` (default: RTFP_AS_OF, else newest)."""
+    as_of = as_of if as_of is not None else as_of_date()
+    files = [p for p in Path(hdx_dir).glob("wfp_food_prices_bgd_*.csv")
+             if as_of is None or VINTAGE_RE.search(p.name).group(1) <= as_of]
+    if not files:
+        raise FileNotFoundError(f"no HDX file under {hdx_dir} on or before {as_of}")
+    return max(files, key=lambda p: VINTAGE_RE.search(p.name).group(1))

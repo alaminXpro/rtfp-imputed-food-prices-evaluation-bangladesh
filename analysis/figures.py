@@ -652,7 +652,8 @@ def captions(r, root, fig_dir, inputs, latest_vintage, n_clean, clean_range):
           "band). The forecast stratum mixes national nowcast error into the local component. OLS slopes are "
           "sensitive to the extreme survey changes listed above (compare the wide T3 interval for wheat flour, "
           "forecast). Inference: the narrow horizontal spread of points is the variance ratio lambda < 1 of Table 3 "
-          "made visible; the flat fitted lines are beta_MZ < 1.", ""]
+          "made visible; the flat fitted lines are point estimates of beta_MZ below 1, but T3's 95% intervals for "
+          "beta_MZ are wide and include 1 for some items, so the size of the attenuation is not pinned down.", ""]
 
     # ---- Figure 3
     f = r[3]
@@ -787,7 +788,8 @@ def captions(r, root, fig_dir, inputs, latest_vintage, n_clean, clean_range):
           "**By month (panel c):** " + "; ".join(
               f"{mm}: {f2(c)} (n {fint(n)})" for mm, c, n in zip(pm.month, pm["mean"], pm["size"])) + ".", "",
           "**Caveats.** Per-month coverage is available in T7b only for the once-calibrated candidate, not for the "
-          "online-recalibrated interval. Pooled coverage hides month-to-month dispersion; months are not independent "
+          "online-recalibrated interval. ACI attains near-nominal long-run coverage by construction (Gibbs & Candes "
+          "2021), so its pooled coverage is weak evidence of calibration in any month or group. Pooled coverage hides month-to-month dispersion; months are not independent "
           "test sets. The test block is the last part of the release history only; it holds "
           f"{fint(f['n_test_stratum']['forecast'])} forecast and {fint(f['n_test_stratum']['cross_sectional'])} "
           "cross-sectional cells (T7 subsets), so coverage for cross-sectional cells is barely tested.", ""]
