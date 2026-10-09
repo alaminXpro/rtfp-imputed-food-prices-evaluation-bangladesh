@@ -98,3 +98,14 @@ def test_fe_ols_flags_regressor_absorbed_by_fixed_effects():
     r = fe_ols(df, "y", ["x", "const_in_fe"], fe="fe", clusters=["mkt_uid", "month"])
     assert r.loc["const_in_fe", "absorbed"] and np.isnan(r.loc["const_in_fe", "coef"])
     assert not r.loc["x", "absorbed"] and r.loc["x", "coef"] == pytest.approx(1.0, abs=0.15)
+
+
+def test_persistent_spike_flags():
+    from rtfp.metrics import persistent_spikes
+    # truth log levels around t: jump of +15% at t; at t+1 keeps 10% (>= half) -> spike; reversal -> not
+    df = pd.DataFrame({"dlog_truth": [0.15, 0.15, -0.15, 0.05],
+                       "dlog_truth_next": [-0.05, -0.10, 0.0, 0.0],   # change from t to t+1
+                       "dlog_pub": [0.06, 0.20, -0.01, 0.0]})
+    s = persistent_spikes(df, jump=0.10, keep=0.5, moved=0.05)
+    assert s.is_spike.tolist() == [True, False, True, False]   # 0.15-0.10=0.05 < half of 0.15 -> not persistent
+    assert s.caught.tolist()[0] and not s.caught.tolist()[2]    # same-direction move of >= 5%

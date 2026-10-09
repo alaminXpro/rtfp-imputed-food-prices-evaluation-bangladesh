@@ -108,3 +108,18 @@ def fe_ols(df: pd.DataFrame, y: str, xs: list, fe: str, clusters: list) -> pd.Da
     out["within_sd"] = [np.sqrt(within[x]) for x in xs_all]
     out["n"] = int(fit.nobs)
     return out
+
+
+def persistent_spikes(df: pd.DataFrame, jump: float = 0.10, keep: float = 0.5, moved: float = 0.05) -> pd.DataFrame:
+    """Flag survey spikes and whether the published series caught them (methodology D1.3).
+
+    is_spike: |dlog_truth| > jump and the level at t+1 retains >= keep of the jump with the same sign,
+              i.e. sign(j) * (j + dlog_truth_next) >= keep * |j|.
+    caught:   the published change moved >= `moved` in the same direction.
+    """
+    j, nxt, pub = df.dlog_truth, df.dlog_truth_next, df.dlog_pub
+    retained = np.sign(j) * (j + nxt)
+    out = df.copy()
+    out["is_spike"] = (j.abs() > jump) & (retained >= keep * j.abs())
+    out["caught"] = out.is_spike & (np.sign(pub) == np.sign(j)) & (pub.abs() >= moved)
+    return out
