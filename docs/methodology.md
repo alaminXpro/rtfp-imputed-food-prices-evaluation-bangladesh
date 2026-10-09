@@ -1,182 +1,144 @@
-# Methodology Design — Variance Attenuation in ML-Imputed Food Prices
+# Methodology Design — What ML-Imputed Food Prices Can and Cannot Tell Early-Warning Systems
 
-> Design specification for the Methods section, not manuscript prose. Every element maps to a task in `docs/plans/2026-10-08-research-plan.md`.
-> Notation is fixed here, so the manuscript, code and results notes all use the same symbols.
+> Design specification for the paper, not manuscript prose. Every element maps to a task in `docs/plans/2026-10-08-research-plan.md`.
+> Revision 3 (2026-10-09), after a three-lens review with adversarial verification that inspected the data files. Supersedes revisions 1–2.
 
-## M0. Contribution statement (what makes this non-naive)
+**Working title (chosen after Task 2.2):** *How much local price information do ML-imputed food prices carry? An independent, release-history evaluation of the World Bank's RTFP.*
 
-1. **Theory:** a formal account of why conditional-mean (ensemble) imputation preserves national price signals but attenuates local ones.
-   - It also shows why the standard validation metrics used for RTFP (cross-validated R² on levels, level correlations, Mincer–Zarnowitz) are *structurally blind* to this attenuation: "validated yet attenuated".
-2. **Identification:** three designs that rule out the obvious objection that observed markets are simply more volatile.
-   - within-market/within-month fixed effects
-   - a natural hold-out from 83 archived data vintages (the World Bank's *own* model judged against later-arriving truth)
-   - a controlled masking experiment
-3. **Signal vs noise:** we separate how much of the "lost" variance is measurement noise (removing it is good) from how much is genuine local price signal (removing it is bad).
-4. **Consequences:** measured with operational indicators that agencies actually use:
-   - WFP ALPS and FAO IPA alerts
-   - market-integration estimates
-   - local shock impacts
-   - forecast-interval coverage
-5. **A usage taxonomy:** which uses of imputed prices are safe (national trends; use as a regressor) and which are unsafe (local spikes, spatial integration, local shock outcomes), each backed by a proposition and a test.
-6. **A remedy:** distribution-preserving imputation, evaluated with proper scoring rules (CRPS), not only MAE.
-7. **Generalisation:** the core test repeated on all ~40 RTFP countries.
-8. **Credibility:** pre-registered confirmatory hypotheses and a fully reproducible pipeline.
+## M0. Core contributions
+
+1. **To our knowledge, the first evaluation of RTFP without producer involvement, and the first to use its archived release history.** Market-months that were imputed in one release and surveyed in a later one let us judge the producer's model against data it did not have, on price levels *and* on local month-to-month changes. We position this against Adewopo et al. (2025, producer co-authored, Nigeria, level correlations) and reproduce their level metrics on our sample. Headline, stated as a measured share with CI after Task 2.2: *imputed cells track X% of local month-to-month variation, bounded for measurement noise in the survey data.*
+2. **Why standard validation metrics cannot see this.** Cross-validated R², level correlations and level Mincer–Zarnowitz tests are dominated by trend and between-market differences. We show, on the same cells, level metrics that pass alongside local-change metrics that do not, and state exactly which quantities the hold-out identifies (M2). The statistics are textbook (Rubin 1987; van Buuren 2018); the contribution is the measurement and the mapping to metrics in use.
+3. **The boundary of safe use.** National index vs BBS food CPI (independent source), descriptive. Local uses: ALPS/IPA alert agreement on hold-out cells against a simulation benchmark of what a noise-removing imputer would achieve; coefficient attenuation when imputed local changes are used as a regressor (equals β_MZ, measured directly). Assembled into one evidence-backed table of supported and unsupported uses.
+4. **Calibrated uncertainty for imputed cells inside the hold-out's support**, released as a join-able table; cells outside the support are flagged, not covered. Known technique (conformalized quantile regression; Gui, Barber & Ma 2023 for missing entries) applied with real later-arriving survey values.
+5. **A bounded replication in 3–5 other RTFP countries**, selected by pre-stated data criteria before their results are seen (gated, Task 6.1).
+6. **Registered, prospective confirmation and full reproducibility.** H1–H2 are confirmed on cells first surveyed in releases published after registration, with the expected sample size stated in advance; everything else is labelled. One-command rebuild; Zenodo DOI reserved at submission, released on acceptance.
 
 ## M1. Data and notation
 
-- Markets `m = 1..M` (Bangladesh: 111), months `t` (2007-01 to 2026-10), items `k` ∈ {rice, wheat flour, palm oil, lentils}.
-- True log retail price `p_mtk`. Published RTFP estimate `p̂_mtk = log c_<k>`.
-- Observation indicator `O_mtk = 1` if the raw item column is non-missing. The observed price is `y_mtk = p_mtk + ν_mtk`, where `ν` is measurement or sampling noise.
-- Price change `Δp_mtk = p_mtk − p_m,t−1,k`. Common component `μ_tk` = cross-market mean of Δp in month t. Idiosyncratic component `e_mtk = Δp_mtk − μ_tk`.
-- RTFP-supplied covariates: `trust_k` (1–10), `spatially_interpolated` (0/1), `data_coverage`, `data_coverage_recent`.
-- Derived covariates: `dist_obs` (km to the nearest market observed in month t) and `gap` (months since the market's last observation).
-- **Vintages** `v = 1..83` (2024-01-25 → 2026-10-05). The hold-out set H is the cells with `O^(v) = 0` in an earlier vintage and `O^(v′) = 1` in a later one.
-- **External sources:**
-  - TCB Dhaka daily min/max (from May 2021)
-  - BBS monthly CPI, national/rural/urban and COICOP food group (collected independently of DAM/WFP)
-  - DAM district prices (optional, gated)
+### Data facts the design must respect (found in review)
+- **geo_id is re-keyed** on 2024-03-18 and 2025-03-31 (names and coordinates unchanged). Markets are resolved through a crosswalk on name + coordinates to a stable internal `mkt_uid` (Task 1.3). geo_id is never used as a key across vintages.
+- **Pipeline toggling:** consecutive vintages alternate between pipelines that keep or drop ~900–1,500 observed cells per item (e.g. 2025-03-24 → 2025-03-31). Such cells are not late arrivals; they form their own stratum.
+- **Rice is absent from 38 of 83 vintages.** Per-vintage item availability is recorded; vintage-dependent quantities use only vintages containing the item.
+- **Stale and aggregated quotes:** 14–33% of consecutive observed changes are exactly zero; 26–29% of observed cells since 2024 carry WFP `priceflag = aggregate`. `priceflag` is carried into the panel.
+- `spatially_interpolated` is 0 on every row of the latest vintage and is not used.
+- Months with zero or near-zero observed markets exist (e.g. 2025-11, 2026-01, 2026-09/10).
 
-## M2. Theoretical framework (Section 3 of the paper)
+### Notation
+- Markets `m` (`mkt_uid`), months `t`, items `k` ∈ {rice, wheat flour, palm oil, lentils}, vintages `v`.
+- Survey value `y_mtk` = plain item column when present (assumption audited in Task 1.2). Published estimate `ĉ_mtk = c_<k>`.
+- **Observed side uses `log y`; imputed side uses `log ĉ`.** (c_ differs from y in ~10% of observed cells due to outlier adjustment; c_-based variants go to the robustness battery.)
+- `Δ` = monthly log change. `μ_tk^(v)` = mean Δ over cells *observed in vintage v*, month t, item k. Local component `e = Δ − μ`, each side demeaned with its own vintage's μ. Pooled (common μ) versions reported alongside to show the size of the national-error term.
+- Derived: `gap` (months since the market's last observation in v), `dist_obs` (km to nearest market observed in t in v), `n_obs_month`.
 
-Assume the imputation approximates the conditional mean given the observed information set 𝓘: `p̂ = E[p | 𝓘]`. RTFP averages M chained-equation chains, which approaches this as M grows. Write `p = p̂ + u`, with `E[u | 𝓘] = 0`. This is a **Berkson-type** error: the error is uncorrelated with the *prediction*, not with the truth.
+### Hold-out H (Task 1.3)
+A cell (mkt_uid, t, k) enters H if it is imputed in vintage v (y missing, ĉ present) and observed in a later vintage v′. Truth = y in the **first** vintage where the cell is observed (revision against the latest vintage as robustness). Two imputed values per cell: `ĉ_first` (earliest vintage containing t and item k) and `ĉ_final` (last vintage before observed).
 
-**Proposition 1 (attenuation):**
-- `Var(Δp̂) = Var(Δp) − Var(Δu) ≤ Var(Δp)`.
-- The attenuation factor `λ = Var(Δp̂)/Var(Δp) = R²_Δ` is the share of price changes predictable from 𝓘.
-- Decompose into common and idiosyncratic parts: `λ_common ≈ 1`, because observed markets reveal μ_t, while `λ_idio = R²` of local deviations, which is small.
-- **Prediction:** pooled variance is roughly preserved, but within-month dispersion is strongly attenuated. This matches the quick-look result (ratio 0.43–0.55).
+**Strata (mutually exclusive, precedence top-down):**
+1. **Toggle:** the cell's survey value appeared in any vintage before v. Not a late arrival; reported separately, never in the headline.
+2. **Forecast:** zero markets observed for item k in month t in vintage v. The model had no same-month information; national error dominates.
+3. **Cross-sectional:** month t partly observed in v. The model knew μ_t; this is the clean test of *local* information and the headline stratum.
 
-**Proposition 2 (calibration-blindness):**
-- For `p̂ = E[p|𝓘]`, regressing truth on the prediction gives slope 1 (Mincer–Zarnowitz efficiency holds).
-- Level correlation `corr(p, p̂)` is dominated by between-market and trend variation, so it is high.
-- The *reverse* regression slope (p̂ on p) equals λ.
-- **Implication:** the metrics used to validate RTFP so far cannot detect attenuation. The right diagnostics are variance ratios and reverse-regression slopes on **idiosyncratic changes**.
-- *This is why the paper is not a re-validation exercise.*
-- **Empirical update (hold-out quick look, 2026-10-09):**
-  - Levels behave as Proposition 2 predicts: MAPE 3.1–3.8%, bias ≈ 0.
-  - Local changes do not. The MZ slope of observed `e` on imputed `e` is 0.10–0.26, not ≈ 1; the reverse slope is 0.03–0.08; the variance ratio is 0.13–0.50.
-  - So the imputed local deviations are not merely shrunk: they are only weakly related to what actually happened. Proposition 2 therefore needs a second case, where the imputer is *not* the conditional mean for the local component. Possible reasons: model misspecification, outlier smoothing, or vintage-specific noise.
-  - Revisit after Task 2.4 (noise correction can raise these slopes) and Task 2.0 (simulate a misspecified imputer).
+**Change pairs** (t−1, t), both ĉ from the same vintage:
+- *both-imputed* (headline);
+- *imputed-t / observed-(t−1)* (one-step nowcast case, reported separately; shares ν_{t−1} with the truth);
+- *observed-t / imputed-(t−1)*: excluded.
 
-**Proposition 3 (alerts):**
-- An alert fires when a standardised deviation exceeds a threshold c.
-- With **absolute** thresholds (e.g. fixed % growth, loss-optimised thresholds as in Yemen), recall falls with λ.
-- With **series-standardised** thresholds (ALPS uses each series' own residual SD), uniform scaling would cancel. Attenuation is not uniform, though: idiosyncratic spikes shrink relative to common seasonal swings.
-- **Prediction:** recall losses concentrate in *local* events, while national events are preserved. Test both threshold types.
+### External sources
+BBS monthly CPI (national/rural/urban, COICOP food; base change 2005-06 → 2021-22 spliced and documented); TCB Dhaka daily min/max (May 2021 →), compared with **Dhaka Sadar** only (the one Dhaka market with substantial observed coverage; rice ends 2024-12); HDX/WFP feed with source and priceflag fields.
 
-**Proposition 4 (co-movement inflation):**
-- `corr(Δp̂_i, Δp̂_j) = Var(μ) / sqrt((Var(μ)+λ_i σ²_i)(Var(μ)+λ_j σ²_j))` rises as λ falls.
-- Imputed–imputed pairs therefore look more integrated than they are. Price-transmission speed is overstated (half-lives too short).
+## M2. Framework (paper Section 2)
 
-**Proposition 5 (downstream regressions):**
-- **(a) Imputed price used as a regressor:** Berkson error does not bias a linear slope; it costs only precision. This is a *safe* use, and the paper should say so.
-- **(b) Imputed price used as an outcome** for a local shock Z (flood, conflict) that is not in 𝓘: the coefficient is attenuated by the share of Z's effect predictable from 𝓘. This is an *unsafe* use.
+Observed local change `e_obs = e + ν_Δ` (ν_Δ measurement noise in the change). Imputed local change `ê = b·s + η`, where `s = E[e|𝓘]` is the part predictable from the model's information set and `η` is model noise independent of `e` and ν.
 
-**Proposition 6 (noise vs signal):**
-- Observed changes contain noise: `Var(Δy) = Var(Δp) + 2Var(ν)` when ν is serially uncorrelated.
-- Noise leaves an MA(1) fingerprint: `Cov(Δy_t, Δy_{t−1}) = −Var(ν)`. This identifies Var(ν), Roll-style.
-- Signal attenuation is therefore `λ* = Var(Δp̂) / (Var(Δy) − 2Var(ν))`. Only the part of λ below what noise removal explains counts as lost information.
+**What the hold-out identifies** (after Var(ν_Δ) from D2):
+- `Var(ê)`, `Cov(ê, e_obs) = Cov(ê, e)`, `Var(e)`. Hence:
+  - `β_MZ = Cov(ê, e)/Var(ê)` — the calibration slope; equals the coefficient attenuation factor when ê replaces e as a regressor.
+  - `ρ* = Cov(ê, e)/sqrt(Var(ê)·Var(e))` — share of local variation tracked is ρ*².
+  - the composite `b·Var(s)`.
+- **Not identified:** b and Var(η) separately. Two bounding readings: (i) `η = 0` — the imputer carries only signal but mis-scaled by b; (ii) `b = 1` — the imputer is calibrated in its signal and the excess variance is noise. Under (i) ρ*² = Var(s)/Var(e); under (ii) ρ*² is a lower bound on it. We report both readings and claim only what holds under either.
+- Identity used as a check: `β_rev = β_MZ · λ`, with `λ = Var(ê)/Var(e_obs)`.
 
-**Simulation check:** each proposition is verified on synthetic panels with known p, ν and 𝓘 before being applied to real data (Task 2.0).
+**Expectations, each tested:**
+- *Levels:* small MAPE, no bias, level MZ slope ≈ 1 (market-FE and month-demeaned versions). Equivalence tested with TOST.
+- *National signal:* RTFP's national index tracks BBS food inflation about as well as an observed-only index (descriptive).
+- *Local information:* ρ*² well below 1 in the cross-sectional stratum.
+- *Regressor use:* coefficients on imputed local changes are attenuated by β_MZ (measured directly in D1).
+- *Alerts:* ALPS/IPA agreement with survey-based alerts is lower than the simulation benchmark of a noise-removing, signal-preserving imputer (D4).
+
+**Simulation (Task 3.1):** synthetic panels (common AR(1) + local AR(1) + seasonality; observed = true + ν with stale-quote and averaging variants; realistic missingness). Four imputer types: calibrated conditional mean; IDW/seasonal fill; chain mean with residual chain noise; outlier smoothing. Targets: the empirical (ρ*, λ, β_MZ) triple with its CI from Task 2.2. Also checks the noise estimators and the disattenuation.
+
+Language: *framework*, *expectations*, *measurement* — no *propositions*, *identification* or *causal*.
 
 ## M3. Empirical designs
 
-**D1 — Descriptive attenuation (Task 2.1):**
-- within-month SD ratio of `e`, imputed ÷ observed
-- variance decomposition into common and idiosyncratic parts
-- tail metrics: share of |Δp| > 5/10/20%, kurtosis
-- 95% CIs from a market-cluster bootstrap with B = 1,000
+**D1 — Hold-out evaluation (Task 2.2, headline).** By item × stratum × pair type × first/final:
+1. *Levels:* MAPE, median APE, bias, level MZ slope (market-FE; month-demeaned), Bland–Altman; Adewopo-style level correlations for comparability.
+2. *Local changes:* corr(ê, e_obs), β_MZ, λ, β_rev, ρ* (with the D2 band). Within-month×item demeaned and pooled versions.
+3. *Spikes:* a survey spike is |Δy_t| > 10% whose level shift persists (≥ 50% of the jump retained at t+1, same sign), with (t, t+1) observed in v′ (conditioning stated). Share of spikes where ê moved ≥ 5% in the same direction.
+4. *Error vs covariates:* |level error| and |ê − e_obs| on gap, dist_obs, trust, data coverage, vintage age; month FE; two-way clustered SEs. Does the trust score predict external error?
+5. *Revision paths* across vintages containing the item.
+Inference: two-way (market × month) cluster bootstrap, B = 1,000, with rel resampled jointly so ρ*'s CI includes noise-estimate uncertainty. Holm across items.
 
-**D2 — Fixed-effects test robust to selection (Task 2.2, confirmatory H1):**
-```
-log|e_mtk| = β·(1 − O_mtk) + α_mk + γ_tk + X'δ + ε
-```
-- Fixed effects: market × item and month × item.
-- Standard errors: two-way clustered by market and month; Driscoll–Kraay as a robustness check.
-- Restricted sample: **switchers only**, i.e. markets with both observed and imputed spells, from 2020 onward.
-- Complements: Brown–Forsythe test within each month, and quantile regressions at the 50th and 90th percentiles.
+**D2 — Measurement-noise band (Task 2.1, runs before registration; Gate G1).**
+- Model: observed local level `y = ℓ + ν`, with `ℓ` AR(1) (persistence φ, variance V) and ν white noise. Autocovariances of observed local changes:
+  - `γ_Δ(1) = −Var(ν) − V(1−φ)²`
+  - `γ_Δ(k) = −V(1−φ)²·φ^(k−1)` for k ≥ 2
+- Estimators: `φ = γ_Δ(3)/γ_Δ(2)`; `Var(ν) = −γ_Δ(1) + γ_Δ(2)/φ`. The naive white-noise estimator `Var(ν) = −γ_Δ(1)` ignores mean reversion and overstates Var(ν); both are reported. Derivation in the appendix; verified in the Task 3.1 simulation.
+- Reliability of observed local changes: `rel = Var(Δℓ)/(Var(Δℓ) + 2·Var(ν))`, with `Var(Δℓ) = 2V(1−φ)`.
+- Staleness-aware variant: estimate on changes conditional on a quote update; stale quotes treated as a separate error component.
+- Dhaka Sadar vs TCB two-source check: supporting sanity check only (≈30–57 months per item), after verifying that TCB is not among WFP's listed sources.
+- Output: **ρ* reported as a band** over rel ∈ [lowest credible estimate, 1], plus the point estimate under each estimator.
+- **Gate G1 (single threshold, exhaustive):** using the clean hold-out from Task 1.3 and the *conservative* end of the band, pivot if **≥ 2 of 4 items** have ρ* ≥ 0.5 (ρ*² ≥ 0.25) in the cross-sectional stratum. Pivot = validation/revision study with the uncertainty table as lead contribution. The same 0.5 threshold is H1.
 
-**D3 — Natural hold-out from vintages (Task 3.1, confirmatory H2, headline):**
-- For cells in H, compare the last pre-observation imputation `p̂^(v)` with the later observation `y^(v′)`.
-- Report:
-  1. level accuracy: MAPE, bias, Bland–Altman
-  2. MZ slope (expected ≈ 1, illustrating Proposition 2)
-  3. **reverse slope and variance ratio of e (expected < 1, Proposition 1)**
-  4. revision paths across vintages
-- **Artefact control:** key on `geo_id`, drop renamed markets, and re-estimate excluding the 2026 market expansion.
+**D3 — Within-market comparison on switching markets (Task 2.4, support).**
+- Sample: markets with both observed and imputed spells, 2020 →.
+- PPML (Poisson pseudo-ML, log link; handles exact zeros and many FE; Santos Silva & Tenreyro 2006) of |e| on `imputed` + market×item FE + month×item FE; two-way clustered SEs.
+- Benchmark-relative hypothesis: coefficient on `imputed` below `log sqrt(rel)` — the value a noise-removing, signal-preserving imputer would produce under Gaussian e. Below it means more than noise was removed.
+- Event-time plot (−6..+6 months around spell boundaries) with pre-boundary trends shown.
+- Covariate balance of H vs never-observed cells comes from Task 1.3 (Table A3).
 
-**D4 — Masking experiment (Task 3.2):**
-- Build a replica of the RTFP imputer (chained equations; elastic net + boosted trees; IDW/seasonal starting values; M = 5).
-- On dense 2021–2026 segments, mask 20% of observed cells, stratified, with R = 50 replications.
-- Arms:
-  1. ensemble mean, as RTFP does
-  2. single stochastic draw
-  3. proper multiple imputation, M draws with noise
-  4. *(optional, GPU)* a generative imputer, CSDI
-- Metrics: MAE, λ, alert recall, CRPS.
-- Shows that the *mean-type output* causes attenuation, and the MAE-vs-distribution trade-off.
+**D4 — Consequences (Tasks 4.1–4.2).**
+- *Alerts:* ALPS (WFP 2014) and IPA (FAO) from ĉ vs from y on H cells; recall, precision, κ with CIs. Benchmark: recall/precision a calibrated, noise-removing imputer achieves against noisy survey alerts, from the Task 3.1 simulation calibrated to estimated Var(e), Var(ν) and the empirical seasonal structure. "Local event" = survey alert in a market while < 25% of markets alert that month. Power calculation on expected alert counts precedes any confirmatory use.
+- *Regressor attenuation:* β_MZ from D1 reported as the multiplier on coefficients estimated with imputed local changes; one worked example re-estimated on observed-only cells if a suitable published RTFP regression exists.
+- *National (descriptive):* equal-weight log index of c_ across all markets and items vs (a) the observed-only index, both against BBS food CPI and, where available, the BBS rice sub-index; m/m and 3-month changes; Newey–West / block-bootstrap SEs; splice documented.
+- *Safe-use table:* assembled by script from D1–D4 outputs (Table 8).
 
-**D5 — Noise decomposition (Task 2.4):**
-- MA(1) autocovariance estimator of Var(ν) per market and item.
-- Cross-check against a two-source method: TCB vs WFP/DAM for Dhaka, where the covariance of two independent measures gives the signal variance.
-- Report λ (raw) and λ* (signal).
+**D5 — Calibrated uncertainty (Task 5.1).**
+- Target: log(y/ĉ), i.e. the value the survey will report (latent-price intervals would be wider).
+- Quantile LightGBM at 5/10/50/90/95%; features: gap, dist_obs, trust, data coverage, item, month, vintage age, stratum.
+- **Three-way time-blocked split** by first-observed vintage: train ≤ T1, calibrate (T1, T2], test > T2.
+- Conformalized quantile regression (Romano et al. 2019), Mondrian by gap × distance. Weighted conformal (Tibshirani et al. 2019) only within the covariate support of H.
+- **Support restriction:** intervals released only for cells with gap ≤ max(H), dist_obs ≤ max(H), and markets with ≥ 1 observation; others flagged "no calibrated interval".
+- Metrics: 80/90% coverage (pooled and by month, with dispersion), width, CRPS. Baselines: published [l_, h_] band; fixed width; global Gaussian.
 
-**D6 — Consequences (Phase 4):**
-- **Alerts:** ALPS (WFP 2014) and IPA (FAO). On H and masked cells, report recall, precision and κ of imputed-based vs observed-based alerts. Use persistence-filtered alert definitions (≥ 2 months) so noise-driven alerts in observed data don't inflate "misses".
-- **Integration:** pairwise correlations by pair type × distance bin. Error-correction half-lives (observed-only vs all cells).
-- **Local shock:** August 2024 eastern-flood difference-in-differences. Effect estimated on observed vs imputed cells (tests Proposition 5b).
-- **Forecasting:** LightGBM quantile + conformal intervals trained on all cells. Coverage on observed vs imputed test cells.
+**D6 — Bounded replication (Task 6.1, gated).** 3–5 per-country RTFP market datasets chosen by criteria stated in the registration (≥ 50 vintages; ≥ 30 markets; plain columns present; not Bangladesh). Repeat Tasks 1.3, 2.1, 2.2 core metrics. Forest plot of ρ* bands. Go only if Bangladesh Phases 1–2 finish on schedule.
 
-**D7 — Remedy: a vintage-calibrated uncertainty layer (Task 6.1):**
-- **No replacement imputer.** Proposition 1 and the hold-out results show local moves are largely outside 𝓘, so no imputer recovers them. The remedy quantifies uncertainty on the *published* values.
-- **Error model:**
-  - quantile LightGBM for `log y − log p̂` on H
-  - features: `gap`, `dist_obs`, `trust`, coverage, `spatially_interpolated`, item, month, vintage age
-- **Calibration:**
-  - conformalized quantile regression, Mondrian by gap × distance
-  - weighted conformal under covariate shift, because H is not exchangeable with never-observed cells
-- **Path simulation:**
-  - M = 200 paths per market, with residuals that are AR(1) over time and spatially correlated
-  - the mean is held at the RTFP value
-  - each path feeds ALPS/IPA, giving P(alert)
-- **Evaluation:**
-  - time-blocked split of H (calibrate on earlier vintages, test on later)
-  - metrics: coverage, width, CRPS, Brier score of P(alert), alert recall
-- **Baselines:**
-  - the published `[l, h]` band
-  - a fixed-width interval
-  - a global Gaussian
-  - replica multiple-imputation draws (D4)
-  - constrained Bayes (Ghosh 1992)
-- **Closest prior method:** Gui, Barber & Ma (2023), *Conformalized Matrix Completion*. Our additions are real later-arriving truth for calibration, a path simulation for probabilistic early warning, and an operational dataset.
+**Appendix designs.** Replica-imputer masking study; robustness battery (c_-based observed side; division-level μ; 3-month changes; excluding 2007–2019 and camp markets; `inflation_<k>`; earliest vs latest vintage; excluding `priceflag = aggregate`).
 
-**D8 — External benchmarks:**
-- **BBS:** compare the 12-month inflation and the m/m variance of RTFP's national food price index with BBS food CPI. BBS is independent of DAM/WFP; this checks the *common* component, which Proposition 1 says should be preserved.
-- **TCB:** compare monthly OHLC from daily min/max with RTFP Dhaka `o_/h_/l_/c_`, validating the modelled intra-month range.
-- **DAM:** district prices for cells never input to RTFP, only if Gate G2 passes.
+## M4. Registration and inference
 
-**D9 — Generalisation (Task 6.3):** repeat D1–D2 for every RTFP country; show a forest plot of β and λ; run a meta-regression of λ on country data coverage.
+- Order: Tasks 1.1–1.3 and 2.1 (noise band and G1) run on existing data, *then* registration (Task 0.3). Registration records the G1 outcome and pre-specifies both branches.
+- **Prospective confirmatory hypotheses** (sample: cells first observed in vintages published after registration; cross-sectional and forecast strata; expected N stated in the registration, minimum 6 post-registration months and ≥ 150 cells per item before testing):
+  - **H1 (local information):** ρ* < 0.5 at the conservative rel, per item, one-sided, Holm-corrected; both-imputed pairs.
+  - **H2 (levels):** level MZ slope within [0.9, 1.1] and |bias| < 1%, per item, TOST with two-way clustered SEs.
+- **Registered before analysis, not prospective** (existing data, labelled so): H3 (D3 benchmark-relative PPML), H4 (D4 alert agreement vs simulation benchmark; confirmatory only if the power calculation supports it).
+- **Descriptive:** national index vs BBS.
+- Effect sizes with 95% CIs and N everywhere; no p-value-only claims. All quick-look results disclosed as exploratory.
 
-## M4. Inference and reporting standards
-
-- Confirmatory hypotheses H1–H5 are pre-registered (`docs/analysis_plan.md`). Everything else is labelled exploratory.
-- **Multiple testing:** Holm correction across 4 items × confirmatory hypotheses.
-- **Uncertainty:**
-  - market-cluster bootstrap for ratios
-  - wild cluster bootstrap where clusters are few (per-country runs)
-  - moving-block bootstrap for time-series metrics
-- **Effect sizes:** always reported with 95% CIs and N. No p-value-only claims.
-- **Robustness:** national vs division-month definition of μ; 1- vs 3-month changes; excluding 2007–2019 and the camp markets; using `inflation_<k>`; earliest vs latest vintage.
-- **Reproducibility:** one-command rebuild, pinned environment, data manifest with sha256, Zenodo DOI.
-
-## M5. Anticipated reviewer objections → where answered
+## M5. Anticipated objections → where answered
 
 | Objection | Answer |
 |---|---|
-| "Observed markets are just more volatile." | D2 (FE, switchers), D3 (same cells), D4 (random masking) |
-| "Imputation just removes noise; that is good." | D5 / Proposition 6: λ vs λ*; only signal loss is criticised |
-| "RTFP is validated (R² 0.85, r = 0.94–0.99)." | Proposition 2: those metrics are blind to attenuation; D3 shows MZ ≈ 1 *and* λ < 1 on the same cells |
-| "DAM feeds RTFP, so this is circular." | We never use DAM-fed cells as truth: H is later observations, BBS is independent, DAM only for never-input cells |
-| "One country." | D9, all RTFP countries |
-| "So what?" | D6 consequences on operational alerts, integration and local shock estimates, plus the safe/unsafe taxonomy |
-| "Criticism without a fix." | D7 remedy evaluated with CRPS |
+| "It's just noise removal, and it's intended." | D2 reports ρ* as a band over credible noise levels; D4's benchmark is what a noise-removing imputer would achieve; the producer's own statements on smoothing are quoted; framing is "what the data supports". |
+| "Observed and imputed cells differ." | D1 compares the same cells; strata separate forecast, cross-sectional and toggle cases; D3 compares the same market across spells; covariate balance (Table A3). |
+| "RTFP is validated (R² 0.85; r 0.94–0.99 in Nigeria)." | D1 reproduces level metrics on H alongside local-change metrics on the same cells; M2 states why the former cannot detect the latter. |
+| "DAM feeds RTFP, so this is circular." | Truth in H is a survey value that was absent from the vintage that produced the estimate; toggle cells, whose value appeared earlier, are reported separately. The test is against the producer's own target variable. Errors shared by the survey and the model cannot be detected this way; BBS is the only independent source and is used for the national check. |
+| "Textbook result." | Agreed and cited; the contribution is the external measurement on an operational dataset, the metrics that hide it, and the consequences. |
+| "Registered after seeing data." | Confirmatory H1–H2 use only post-registration releases; everything else labelled. |
+| "One country." | D6 bounded replication. |
+| "Criticism without a fix." | D5, with honest novelty framing and support limits. |
+
+## M6. Deferred to a follow-up paper
+
+Path simulation and probabilistic alerts; information-augmented imputer (rainfall, flood extent, daily TCB/DAM, exchange rate); August 2024 flood DiD; forecast-interval coverage; companion website (Next.js on Vercel) and the monthly auto-updating prospective test.
