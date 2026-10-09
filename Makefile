@@ -7,3 +7,6 @@ data:
 
 test:
 	$(PY) -m pytest -q
+
+panel:
+	$(PY) -I -m rtfp.panel
