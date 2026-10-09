@@ -76,13 +76,18 @@ def main():
                  "rule": "median price year inside the hold-out window (2023-09..2026-08)",
                  "verdict": verdict(never.year_median.median() >= 2023, yes="evaluable", no="not evaluable with this design"),
                  "source": "T_A3_covariate_balance.csv"})
-    al = sorted(T.glob("T6_alerts*.csv"))
-    if al:
-        a = pd.read_csv(al[0])
-        rows.append({"use": "Local early-warning alerts (ALPS/IPA)", "evidence": f"see {al[0].name}", "rule": "see T6 note",
-                     "verdict": "see T6", "source": al[0].name})
+    if (T / "T6_alerts.csv").exists():
+        e6 = pd.read_csv(T / "T6_alerts.csv")
+        b6 = pd.read_csv(T / "T6_alerts_benchmark_matched.csv")
+        ipa = e6[(e6["item"] == "ALL") & e6.indicator.str.startswith("ipa") & (e6.level == "alert")].set_index("indicator")
+        com = b6[(b6.benchmark == "common_only") & (b6.level == "alert")].set_index("indicator").recall_matched
+        gain = (ipa.recall - com.reindex(ipa.index))
+        rows.append({"use": "Local early-warning alerts (FAO IPA)",
+                     "evidence": f"IPA alert recall {rng(ipa.recall)} vs {rng(com.reindex(ipa.index))} for a simulated value with no local information, base rates matched (T6); ALPS uninformative in this period",
+                     "rule": "recall exceeds the no-local-information benchmark by >= 0.10 for both IPA variants",
+                     "verdict": verdict((gain >= 0.10).all()), "source": "T6_alerts.csv, T6_alerts_benchmark.csv"})
     else:
-        rows.append({"use": "Local early-warning alerts (ALPS/IPA)", "evidence": "", "rule": "", "verdict": "pending",
+        rows.append({"use": "Local early-warning alerts (FAO IPA)", "evidence": "", "rule": "", "verdict": "pending",
                      "source": "T6 (not yet produced)"})
     t = pd.DataFrame(rows)
     t.to_csv(T / "T8_safe_use.csv", index=False)
