@@ -50,4 +50,4 @@ Full terms, quoted from each source, are in `data/raw/LICENSES.md`.
 
 Exploratory results up to release 2026-10-05.
 
-**Registration.** The analysis plan (`docs/analysis_plan.md`) and design specification (`docs/methodology.md`) were registered on OSF on 2026-10-13: https://osf.io/3tjwn (SHA-256 of both files and the source commit `b69e994` are given in the registration). The prospective confirmatory tests (H1, H1f, H2) use only releases published after that date, once the minimum sample in §2 of the plan is reached; they are not part of the results here.
+**Registration.** The analysis plan (`docs/analysis_plan.md`) and design specification (`docs/methodology.md`) were registered on OSF on 2026-10-13: https://doi.org/10.17605/OSF.IO/3TJWN (SHA-256 of both files and the source commit `b69e994` are given in the registration). The prospective confirmatory tests (H1, H1f, H2) use only releases published after that date, once the minimum sample in §2 of the plan is reached; they are not part of the results here.
