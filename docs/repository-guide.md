@@ -126,7 +126,7 @@ tests/               270 tests: rules on toy data + invariants re-checked on the
 outputs/tables/      every derived table (CC BY 4.0)
 outputs/results_notes/  generated notes (the hand-over to the co-author)
 outputs/figures/     figures + FIGURES.md captions
-docs/                methodology.md (design spec), analysis_plan.md (draft OSF registration),
+docs/                methodology.md (design spec), analysis_plan.md (registered on OSF, https://osf.io/3tjwn),
                      repository-guide.md (this guide)
 data/raw/            downloaded sources (RTFP + HDX files not in git; MANIFEST.csv and LICENSES.md are)
 data/external/       BBS and TCB downloads (only their manifests in git)
@@ -184,7 +184,7 @@ Code MIT; derived tables CC BY 4.0; RTFP data CC BY 4.0 + World Bank terms (cite
 
 ## 12. What is not done yet
 
-- **OSF registration** of `docs/analysis_plan.md` (makes H1/H2 confirmatory on releases published afterwards).
+- **Confirmatory run** of H1, H1f and H2 (registered on OSF 2026-10-13, https://osf.io/3tjwn) once at least 6 months of later releases exist.
 - **GitHub push and Zenodo DOI** (CITATION.cff still has placeholders).
 - Deferred minor items: a sensitivity check without known gross survey errors in T2–T4/T6; MANIFEST download times
   and hash re-verification; a full audit of the replication's dropped markets; licence check of replication sources.
