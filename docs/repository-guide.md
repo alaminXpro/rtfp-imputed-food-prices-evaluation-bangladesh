@@ -145,7 +145,7 @@ download) → `make test`. `RTFP_AS_OF=2026-10-05` pins the data so outputs repr
    code; several bugs were caught this way (below).
 3. **No hand-typed numbers** in notes: every number is computed from a table when the note is generated.
 4. **Clean rebuild**: the whole pipeline was rebuilt from an empty output folder in a separate checkout; all tables and
-   notes came out byte-identical (latest check on commit `baada41`).
+   notes came out byte-identical (latest check on commit `bad8186`).
 5. **Adversarial review rounds** at the end: a whole-branch review (15 serious issues) and three further verification
    rounds (28, then 9 confirmed issues), each fixed and re-checked.
 

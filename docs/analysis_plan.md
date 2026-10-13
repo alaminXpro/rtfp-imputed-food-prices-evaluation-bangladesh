@@ -1,8 +1,8 @@
-# Registered Analysis Plan (draft for OSF)
+# Registered Analysis Plan
 
 **Authors:** Md. Al Amin (ORCID 0009-0005-5859-3093), Md. Fazlay Rabbi Rabbi (0009-0006-7443-8007), Harique Rahman Jaif (0009-0009-2275-8772), Saha Reno (0000-0003-1897-9002); Ahsanullah University of Science and Technology.
 **Project:** An independent, release-history evaluation of the World Bank's ML-imputed Real-Time Food Prices (RTFP), Bangladesh.
-**Status:** DRAFT, 2026-10-09. Not yet posted. The registration date is the date this file is posted on OSF; record it here when posted: `REGISTERED: ____-__-__ (OSF link: ____)`.
+**Status:** Final text for OSF registration, 2026-10-13. The registration date is the date OSF records for the registration; it and the registration link are recorded in the repository README.
 **Spec:** `docs/methodology.md` (revision 3 with the 2026-10-09 clarifications). Where this file and the spec differ, this file governs the confirmatory analysis.
 
 ## 1. Disclosure of work done before registration (exploratory)
@@ -11,7 +11,7 @@ Everything below was computed on RTFP releases up to **2026-10-05** and is explo
 - Quick looks `analysis/01_*`, `analysis/02_*` (superseded; known defects listed in the plan §1).
 - Raw-column audit (Table A1): plain item columns equal the WFP/HDX retail values exactly, one-to-one, in the latest release.
 - Hold-out construction and counts (Tables A2–A3); stratum definitions were revised after inspecting the data (toggle > unconfirmed > backfill > forecast > cross-sectional; backfill threshold of 6 months chosen after seeing the arrival-lag distribution).
-- Measurement-noise band and Gate G1 (Table 1, T1b–T1d). Order of events: (1) the gate rule was committed before any gate code existed (git 86970eb, 2026-10-09 11:59); (2) the first implementation ("literal_v1") gave **PIVOT (2 of 4 items)**; (3) an audit found that it compared reliabilities and correlations from different pair populations, contrary to D2; (4) the D2-faithful implementation (populations matched) gives **PROCEED (1 of 4)**. Both results are reported (T1d); the change was made after seeing the first result, so the gate outcome is exploratory.
+- Measurement-noise band and Gate G1 (Table 1, T1b–T1d). Order of events: (1) the gate rule was committed before any gate code existed (git a775eca, 2026-10-09 11:59); (2) the first implementation ("literal_v1") gave **PIVOT (2 of 4 items)**; (3) an audit found that it compared reliabilities and correlations from different pair populations, contrary to D2; (4) the D2-faithful implementation (populations matched) gives **PROCEED (1 of 4)**. Both results are reported (T1d); the change was made after seeing the first result, so the gate outcome is exploratory.
 - Level accuracy (Table 2), local-change agreement and spikes (Table 3), error predictors (Table 4), first uncertainty model (Table 7).
 - Also already computed on the same data, therefore **exploratory, not confirmatory**, despite being listed in §3: the within-market switcher analysis that H3 describes (Table 5, bootstrap B = 1000); the alert comparison and power calculation that H4 describes (Table 6, simulation benchmarks in Table A4); the national BBS comparison (T7n); the safe-use table (Table 8); the TCB two-source noise check (Table A5); and the five-country replication (Table 9). Their numbers may be cited only as exploratory.
 
