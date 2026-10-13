@@ -20,5 +20,6 @@ authors:
     affiliation: "Ahsanullah University of Science and Technology"
 version: "0.1.0"
 license: MIT
-repository-code: "TO BE ADDED AT RELEASE"
+repository-code: "https://github.com/alaminXpro/rtfp-imputed-food-prices-evaluation-bangladesh"
+date-released: "2026-10-13"
 keywords: [food prices, imputation, data quality, early warning, conformal prediction, Bangladesh, World Bank RTFP]

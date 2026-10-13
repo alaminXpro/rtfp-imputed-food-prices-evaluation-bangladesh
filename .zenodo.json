@@ -1,0 +1,54 @@
+{
+  "upload_type": "software",
+  "title": "Release-history evaluation of the World Bank's ML-imputed Real-Time Food Prices (Bangladesh): code and derived data",
+  "creators": [
+    {
+      "name": "Al Amin, Md.",
+      "orcid": "0009-0005-5859-3093",
+      "affiliation": "Ahsanullah University of Science and Technology"
+    },
+    {
+      "name": "Rabbi, Md. Fazlay Rabbi",
+      "orcid": "0009-0006-7443-8007",
+      "affiliation": "Ahsanullah University of Science and Technology"
+    },
+    {
+      "name": "Jaif, Harique Rahman",
+      "orcid": "0009-0009-2275-8772",
+      "affiliation": "Ahsanullah University of Science and Technology"
+    },
+    {
+      "name": "Reno, Saha",
+      "orcid": "0000-0003-1897-9002",
+      "affiliation": "Ahsanullah University of Science and Technology"
+    }
+  ],
+  "description": "<p>Code and derived data for an independent, release-history evaluation of the World Bank's ML-imputed Real-Time Food Prices (RTFP) for Bangladesh: 110 markets, four items (rice, wheat flour, palm oil, lentils), judged against survey values that arrived after each of 83 archived releases (2024-01-25 to 2026-10-05). One command rebuilds every table, results note and figure from the original sources (data cutoff RTFP_AS_OF = 2026-10-05). All results are exploratory; the prospective confirmatory analysis plan is registered at OSF (https://doi.org/10.17605/OSF.IO/3TJWN).</p><p>Code: MIT. Derived tables: CC BY 4.0. Files in data/third_party/bbs/ are Bangladesh Bureau of Statistics data under BBS's own terms (acknowledgement, no commercial reproduction) and are not covered by MIT or CC BY. Independent research; not affiliated with or endorsed by the World Bank, WFP, BBS or TCB.</p>",
+  "license": "MIT",
+  "keywords": [
+    "food prices",
+    "food security",
+    "imputation",
+    "measurement error",
+    "data quality",
+    "early warning",
+    "conformal prediction",
+    "Bangladesh",
+    "World Bank RTFP"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "10.17605/OSF.IO/3TJWN",
+      "relation": "isDocumentedBy",
+      "scheme": "doi",
+      "resource_type": "publication-preregistration"
+    },
+    {
+      "identifier": "10.48529/2ZH0-JF55",
+      "relation": "references",
+      "scheme": "doi",
+      "resource_type": "dataset"
+    }
+  ],
+  "version": "0.1.0"
+}
