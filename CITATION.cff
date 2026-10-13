@@ -19,6 +19,7 @@ authors:
     orcid: "https://orcid.org/0000-0003-1897-9002"
     affiliation: "Ahsanullah University of Science and Technology"
 version: "0.1.0"
+doi: "10.5281/zenodo.23335439"
 license: MIT
 repository-code: "https://github.com/alaminXpro/rtfp-imputed-food-prices-evaluation-bangladesh"
 date-released: "2026-10-13"

@@ -1,5 +1,7 @@
 # How much local price information do ML-imputed food prices carry?
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23335439.svg)](https://doi.org/10.5281/zenodo.23335439)
+
 Code and derived data for an independent, release-history evaluation of the World Bank's Real-Time Food Prices (RTFP) for Bangladesh: 110 markets, four items (rice, wheat flour, palm oil, lentils), monthly from 2007, judged against survey values that arrived after each release.
 
 Independent research. Not affiliated with or endorsed by the World Bank, WFP, the Government of Bangladesh, BBS or TCB.
@@ -31,6 +33,10 @@ Python 3.14 was used (`requirements.txt` pins every package). `make all` took ab
 | `outputs/results_notes/` | one note per table: claim, numbers, method, caveats (generated, not hand-written) |
 | `docs/methodology.md` | design specification; `docs/analysis_plan.md` analysis plan as registered on OSF (both files are frozen at the registered version) |
 | `data/raw/LICENSES.md` | terms of each source and what may be redistributed |
+
+## Archive
+
+Release v0.1.0 (the version accompanying the paper) is archived on Zenodo: https://doi.org/10.5281/zenodo.23335439. Cite it with the metadata in `CITATION.cff`.
 
 ## Data versions
 
