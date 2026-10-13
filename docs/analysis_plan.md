@@ -1,5 +1,6 @@
 # Registered Analysis Plan (draft for OSF)
 
+**Authors:** Md. Al Amin (ORCID 0009-0005-5859-3093), Md. Fazlay Rabbi Rabbi (0009-0006-7443-8007), Harique Rahman Jaif (0009-0009-2275-8772), Saha Reno (0000-0003-1897-9002); Ahsanullah University of Science and Technology.
 **Project:** An independent, release-history evaluation of the World Bank's ML-imputed Real-Time Food Prices (RTFP), Bangladesh.
 **Status:** DRAFT, 2026-10-09. Not yet posted. The registration date is the date this file is posted on OSF; record it here when posted: `REGISTERED: ____-__-__ (OSF link: ____)`.
 **Spec:** `docs/methodology.md` (revision 3 with the 2026-10-09 clarifications). Where this file and the spec differ, this file governs the confirmatory analysis.
