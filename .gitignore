@@ -26,3 +26,7 @@ site/out/
 tests/fixtures/bbs/
 tests/fixtures/tcb/
 src/*.egg-info/
+
+# internal working docs (kept locally, not published)
+docs/study-guide.md
+docs/plans/

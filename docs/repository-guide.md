@@ -127,7 +127,7 @@ outputs/tables/      every derived table (CC BY 4.0)
 outputs/results_notes/  generated notes (the hand-over to the co-author)
 outputs/figures/     figures + FIGURES.md captions
 docs/                methodology.md (design spec), analysis_plan.md (draft OSF registration),
-                     plans/ (research plan), study-guide.md, this guide
+                     repository-guide.md (this guide)
 data/raw/            downloaded sources (RTFP + HDX files not in git; MANIFEST.csv and LICENSES.md are)
 data/external/       BBS and TCB downloads (only their manifests in git)
 data/third_party/bbs/  BBS food CPI series, published under BBS's terms (not CC BY / MIT)
@@ -174,7 +174,7 @@ Market id by name; truth = latest release; the two extra strata and the 6-month 
 the data, disclosed, with 3/12 sensitivity); noise estimated on the markets and period that supply truth; scikit-learn
 gradient boosting instead of LightGBM; model choice on a separate selection block; online recalibration added to the
 intervals; "drop and report" for location-jumping markets in the replication only; BBS series published under BBS terms
-(your choice B). The full log is `.superpowers/sdd/2026-10-08-research-plan/progress.md` (local, not in git).
+(your choice B).
 
 ## 11. Licensing in one line each
 
@@ -197,4 +197,3 @@ Code MIT; derived tables CC BY 4.0; RTFP data CC BY 4.0 + World Bank terms (cite
 3. Read the notes in this order: A1 → A2 → T1 → T2 → T3 → T5 → T7 → T8 → T9.
 4. Re-run one step yourself, e.g. `RTFP_AS_OF=2026-10-05 .venv/bin/python -I analysis/t2_levels.py`, and compare with
    `outputs/tables/T2_levels.csv`.
-5. Use `docs/study-guide.md` for the statistics behind each step (measurement error, bootstrap, conformal prediction).

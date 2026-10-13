@@ -1,6 +1,6 @@
 # Methodology Design — What ML-Imputed Food Prices Can and Cannot Tell Early-Warning Systems
 
-> Design specification for the paper, not manuscript prose. Every element maps to a task in `docs/plans/2026-10-08-research-plan.md`.
+> Design specification for the paper, not manuscript prose.
 > Revision 3 (2026-10-09), after a three-lens review with adversarial verification that inspected the data files. Supersedes revisions 1–2.
 
 **Working title (chosen after Task 2.2):** *How much local price information do ML-imputed food prices carry? An independent, release-history evaluation of the World Bank's RTFP.*
